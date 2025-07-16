@@ -31,23 +31,28 @@
                     <div class="sm:col-span-3">
                         <label class="block text-sm/6 font-medium text-gray-900">이름</label>
                         <div class="mt-2 relative">
-                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base text-gray-900 border border-gray-200">{{ $user->name }}</div>
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200 {{ empty($user->name) ? 'text-gray-400' : 'text-gray-900' }}">
+                                {{ $user->name ?: '-' }}
+                            </div>
                         </div>
                     </div>
                     <div class="sm:col-span-3">
                         <label class="block text-sm/6 font-medium text-gray-900">이메일</label>
                         <div class="mt-2 relative">
-                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base text-gray-900 border border-gray-200">{{ $user->email }}</div>
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200 {{ empty($user->email) ? 'text-gray-400' : 'text-gray-900' }}">
+                                {{ $user->email ?: '-' }}
+                            </div>
                         </div>
                     </div>
                     <div class="sm:col-span-3">
                         <label class="block text-sm/6 font-medium text-gray-900">등급</label>
                         <div class="mt-2 relative">
-                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base text-gray-900 border border-gray-200">
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200 {{ empty($user->type) ? 'text-gray-400' : 'text-gray-900' }}">
                                 @if($user->type == 'admin') 일반 관리자
                                 @elseif($user->type == 'super') 최고 관리자
                                 @elseif($user->type == 'staff') 스태프
-                                @else -
+                                @elseif(empty($user->type)) -
+                                @else {{ $user->type }}
                                 @endif
                             </div>
                         </div>
@@ -55,11 +60,12 @@
                     <div class="sm:col-span-3">
                         <label class="block text-sm/6 font-medium text-gray-900">상태</label>
                         <div class="mt-2 relative">
-                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base text-gray-900 border border-gray-200">
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200 {{ empty($user->status) ? 'text-gray-400' : 'text-gray-900' }}">
                                 @if($user->status == 'active') 활성
                                 @elseif($user->status == 'inactive') 비활성
                                 @elseif($user->status == 'suspended') 정지
-                                @else -
+                                @elseif(empty($user->status)) -
+                                @else {{ $user->status }}
                                 @endif
                             </div>
                         </div>
@@ -67,7 +73,9 @@
                     <div class="sm:col-span-3">
                         <label class="block text-sm/6 font-medium text-gray-900">전화번호</label>
                         <div class="mt-2 relative">
-                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base text-gray-900 border border-gray-200">{{ $user->phone }}</div>
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200 {{ empty($user->phone) ? 'text-gray-400' : 'text-gray-900' }}">
+                                {{ $user->phone ?: '-' }}
+                            </div>
                         </div>
                     </div>
                     <div class="sm:col-span-3">
@@ -77,14 +85,17 @@
                                 <img src="{{ $user->avatar }}" alt="아바타" class="h-12 w-12 rounded-full object-cover border border-gray-300">
                                 <div class="text-xs text-gray-500 mt-1">{{ $user->avatar }}</div>
                             @else
-                                <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base text-gray-400 border border-gray-200">-</div>
+                                <div class="block w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 border border-gray-200">-</div>
+                                <div class="text-xs text-gray-400 mt-1">이미지 없음</div>
                             @endif
                         </div>
                     </div>
                     <div class="sm:col-span-6">
                         <label class="block text-sm/6 font-medium text-gray-900">메모</label>
                         <div class="mt-2 relative">
-                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base text-gray-900 border border-gray-200 min-h-[48px]">{{ $user->memo }}</div>
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200 min-h-[48px] {{ empty($user->memo) ? 'text-gray-400' : 'text-gray-900' }}">
+                                {{ $user->memo ?: '-' }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -92,7 +103,13 @@
         </div>
         <div class="mt-6 flex items-center justify-end gap-x-6">
             <x-link-light href="{{ route($route.'index') }}">목록으로</x-link-light>
-            <x-button-primary onclick="window.location.href='{{ route($route.'edit', $user->id) }}'">수정</x-button-primary>
+            <x-button-primary onclick="setShowEditFlagAndGoEdit()">수정</x-button-primary>
         </div>
     </div>
-@endsection 
+@endsection
+<script>
+function setShowEditFlagAndGoEdit() {
+    localStorage.setItem('adminUserFromShow', '1');
+    window.location.href = '{{ route($route.'edit', $user->id) }}';
+}
+</script> 

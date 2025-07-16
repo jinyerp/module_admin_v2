@@ -11,6 +11,8 @@
         localStorage.removeItem('adminUserEditSuccess');
         location.reload();
     }
+    // show → edit 경로에서 남아있을 수 있는 플래그 초기화
+    localStorage.removeItem('adminUserFromShow');
     </script>
 
     @csrf {{-- ajax 통신을 위한 토큰 --}}
