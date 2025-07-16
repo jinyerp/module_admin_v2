@@ -1,0 +1,40 @@
+{
+    "menu": [
+        {
+            "id": "dashboard",
+            "title": "대시보드",
+            "icon": "fas fa-tachometer-alt",
+            "url": "/admin",
+            "order": 1
+        },
+        {
+            "id": "system",
+            "title": "시스템 관리",
+            "icon": "fas fa-cogs",
+            "order": 2,
+            "children": [
+                {
+                    "id": "system-countries",
+                    "title": "국가 관리",
+                    "icon": "fas fa-globe",
+                    "url": "/admin/system/country",
+                    "order": 1
+                }
+            ]
+        },
+        {
+            "id": "users",
+            "title": "사용자 관리",
+            "icon": "fas fa-users",
+            "url": "/admin/users",
+            "order": 3
+        },
+        {
+            "id": "settings",
+            "title": "설정",
+            "icon": "fas fa-cog",
+            "url": "/admin/settings",
+            "order": 4
+        }
+    ]
+}
