@@ -122,6 +122,10 @@ Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
         Route::post('/bulk-delete', [
             \Jiny\Admin\Http\Controllers\AdminUserController::class,
             'bulkDelete'])->name('bulk-delete'); // 선택 삭제
+        // CSV 다운로드 라우트 추가
+        Route::get('/download-csv', [
+            \Jiny\Admin\Http\Controllers\AdminUserController::class,
+            'downloadCsv'])->name('downloadCsv');
     });
 
 

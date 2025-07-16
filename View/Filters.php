@@ -6,14 +6,16 @@ use Illuminate\View\Component;
 
 class Filters extends Component
 {
+    public $route;
     /**
      * Create a new component instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct($route)
     {
         // 생성자
+        $this->route = $route;
     }
 
     /**

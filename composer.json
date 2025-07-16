@@ -1,0 +1,45 @@
+{
+    "name": "jinyerp/admin",
+    "description": "jinyerp admin module for laravel",
+    "keywords": [
+        "jinyerp", 
+        "jinyerp-admin", 
+        "jinyerp-admin-module"
+    ],
+    "homepage": "http://www.jinyerp.com",
+    "type": "library",
+    "authors": [
+        {
+            "name": "hojinlee",
+            "email": "infohojin@gmail.com",
+            "homepage": "http://www.jinyerp.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Jiny\\Admin\\": "src/"
+        },
+        "files" : [
+            "Helpers/Helper.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Jiny\\Admin\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Jiny\\Admin\\JinyAdminServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        
+    }
+}

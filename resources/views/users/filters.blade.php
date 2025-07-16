@@ -7,8 +7,8 @@
             name="filter_search" placeholder="이름 또는 이메일로 검색..." value="{{ isset($filters['search']) ? $filters['search'] : '' }}" />
     </div>
     <div>
-        <label id="status-listbox-label" class="block text-sm/6 font-medium text-gray-900">상태</label>
-        <div class="relative mt-2">
+        <label id="status-listbox-label" class="block text-sm font-medium text-gray-700 mb-1">상태</label>
+        <div class="relative">
             <button type="button" id="status-listbox-button" class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pr-2 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="status-listbox-label">
                 <span class="col-start-1 row-start-1 truncate pr-6" id="status-selected-text">전체</span>
                 <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-gray-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
@@ -53,8 +53,8 @@
         </div>
     </div>
     <div>
-        <label id="type-listbox-label" class="block text-sm/6 font-medium text-gray-900">등급</label>
-        <div class="relative mt-2">
+        <label id="type-listbox-label" class="block text-sm font-medium text-gray-900 mb-1">등급</label>
+        <div class="relative">
             <button type="button" id="type-listbox-button" class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pr-2 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="type-listbox-label">
                 <span class="col-start-1 row-start-1 truncate pr-6" id="type-selected-text">전체</span>
                 <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-gray-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
@@ -113,8 +113,8 @@
 
     <div id="advancedSearchOptions" class="hidden mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-            <label id="verified-listbox-label" class="block text-sm/6 font-medium text-gray-900">이메일 인증</label>
-            <div class="relative mt-2">
+            <label id="verified-listbox-label" class="block text-sm font-medium text-gray-900 mb-1">이메일 인증</label>
+            <div class="relative">
                 <button type="button" id="verified-listbox-button" class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pr-2 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="verified-listbox-label">
                     <span class="col-start-1 row-start-1 truncate pr-6" id="verified-selected-text">전체</span>
                     <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-gray-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
@@ -163,8 +163,8 @@
                 placeholder="0" value="{{ isset($filters['login_count']) ? $filters['login_count'] : '' }}" />
         </div>
         <div>
-            <label id="created-listbox-label" class="block text-sm/6 font-medium text-gray-900">등록일</label>
-            <div class="relative mt-2">
+            <label id="created-listbox-label" class="block text-sm font-medium text-gray-900 mb-1">등록일</label>
+            <div class="relative">
                 <button type="button" id="created-listbox-button" class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pr-2 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="created-listbox-label">
                     <span class="col-start-1 row-start-1 truncate pr-6" id="created-selected-text">전체</span>
                     <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-gray-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">

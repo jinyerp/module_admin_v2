@@ -21,13 +21,31 @@
                     </svg>
                     초기화
                 </x-link-light>
-            </div>
 
-            @if (request('search') || request('status') || request('date_from') || request('date_to') || request('role'))
+                @if (request('search') || request('status') || request('date_from') || request('date_to') || request('role'))
                 <div class="text-sm text-gray-600">
                     <span class="font-medium">{{ $users->total() ?? 0 }}</span>건의 결과
                 </div>
-            @endif
+                @endif
+
+            </div>
+
+            
+            {{-- CSV 다운로드 버튼 --}}
+            <div>
+                <form id="csv-download-form" method="GET" action="{{ route($route . 'downloadCsv') }}">
+                    @foreach(request()->except(['page']) as $key => $value)
+                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endforeach
+                    <x-button-light type="submit">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 4v12" />
+                        </svg>
+                        CSV 다운로드
+                    </x-button-light>
+                </form>
+            </div>
         </div>
 
     </div>

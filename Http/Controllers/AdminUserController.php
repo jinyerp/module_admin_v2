@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 use Jiny\Admin\Models\AdminUser;
 
@@ -259,6 +260,50 @@ class AdminUserController extends Controller
         return response()->json([
             'success' => true,
             'message' => "{$deletedCount}명의 관리자가 성공적으로 삭제되었습니다."
+        ]);
+    }
+
+    /**
+     * 관리자 회원 목록 CSV 다운로드
+     */
+    public function downloadCsv(Request $request)
+    {
+        $query = AdminUser::query();
+
+        $filters = $this->getFilterParameters($request);
+        $query = $this->applyFilter($filters, $query);
+
+        $sortField = $request->get('sort', 'id');
+        $sortDirection = $request->get('direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        $filename = 'admin_users_' . date('Ymd_His') . '.csv';
+
+        $columns = [
+            'id', 'name', 'email', 'type', 'status', 'is_verified', 'phone', 'login_count', 'memo', 'created_at', 'updated_at'
+        ];
+
+        return new StreamedResponse(function () use ($query, $columns) {
+            $handle = fopen('php://output', 'w');
+            // UTF-8 BOM 추가 (엑셀 한글깨짐 방지)
+            fwrite($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+            // 헤더
+            fputcsv($handle, $columns);
+
+            $query->chunk(500, function ($rows) use ($handle, $columns) {
+                foreach ($rows as $row) {
+                    $data = [];
+                    foreach ($columns as $col) {
+                        $data[] = $row->{$col};
+                    }
+                    fputcsv($handle, $data);
+                }
+            });
+
+            fclose($handle);
+        }, 200, [
+            "Content-Type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=\"$filename\"",
         ]);
     }
 }
