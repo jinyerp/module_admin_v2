@@ -13,6 +13,7 @@ class AdminSideMenuService
     public function __construct($menuPath = null)
     {
         $this->menuPath = $menuPath ?? __DIR__ . '/../../../resources/menus/admin-sidebar.json';
+        //dump($this->menuPath);
         $this->loadMenuData();
     }
 
@@ -23,8 +24,10 @@ class AdminSideMenuService
     {
         if (File::exists($this->menuPath)) {
             $jsonContent = File::get($this->menuPath);
+            //dump($jsonContent);
             $this->menuData = json_decode($jsonContent, true);
         } else {
+            //dump("file not found");
             $this->menuData = [];
         }
     }
@@ -94,7 +97,7 @@ class AdminSideMenuService
     {
         //dump($this->menuData);
         $keys = array_keys($this->menuData);
-        //dump($keys);
+        //dd($keys);
         $lastKey = $keys[count($keys)-1];
         //dump($lastKey);
         $bottom = $this->menuData[$lastKey];

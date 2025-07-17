@@ -13,7 +13,7 @@ class MigrationListController extends Controller
     
     public function __construct()
     {
-        $this->route = 'admin.databases.migrations.';
+        $this->route = 'admin.database.migrations.';
     }
 
     /**

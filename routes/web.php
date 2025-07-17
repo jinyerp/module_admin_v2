@@ -41,16 +41,18 @@ Route::middleware(['web'])->group(function () {
 
 // 관리자 최초 설정 (인증 없이 접근 가능)
 Route::middleware(['web'])->group(function () {
-    Route::get('/admin/setup', [AdminSetupController::class, 'index'])->name('admin.setup');
-    Route::post('/admin/setup/migrate', [AdminSetupController::class, 'migrate'])->name('admin.setup.migrate');
-    Route::post('/admin/setup/superadmin', [AdminSetupController::class, 'createSuperAdmin'])->name('admin.setup.superadmin');
+    Route::get('/admin/setup', [
+        AdminSetupController::class, 'index'])->name('admin.setup');
+    Route::post('/admin/setup/migrate', [
+        AdminSetupController::class, 'migrate'])->name('admin.setup.migrate');
+    Route::post('/admin/setup/superadmin', [
+        AdminSetupController::class, 'createSuperAdmin'])->name('admin.setup.superadmin');
     
 });
 
 
-use Jiny\Admin\Http\Controllers\AdminSettingMailController;
-
 // 메일 환경설정 라우트
+use Jiny\Admin\Http\Controllers\AdminSettingMailController;
 Route::middleware(['web', 'admin:auth'])->group(function () {
     Route::get('/admin/setting/mail', [
         AdminSettingMailController::class, 
@@ -84,7 +86,7 @@ Route::prefix('admin')->middleware(['web', 'admin:auth'])->name('admin.')->group
     // });
 
     // 데이터베이스 관리
-    Route::prefix('databases')->name('databases.')->group(function () {
+    Route::prefix('database')->name('database.')->group(function () {
         // 데이터베이스 대시보드
         Route::get('/', [DatabaseController::class, 'index'])->name('index');
         
@@ -115,30 +117,17 @@ Route::prefix('admin')->middleware(['web', 'admin:auth'])->name('admin.')->group
 });
 
 
+Route::prefix('admin/monitoring')->middleware(['web', 'admin:auth'])
+    ->name('admin.monitoring.')->group(function () {
+
+});
+
+
 /**
  * admin/admin 관리기능
  */
 Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
     ->name('admin.admin.')->group(function () {
-
-    // // 관리자 사용자 로그 CRUD 라우트
-    // Route::prefix('logs/user')->name('logs.user.')->group(function () {
-    //     Route::get('/', [AdminUserLogController::class, 'index'])->name('index');
-    //     Route::get('/create', [AdminUserLogController::class, 'create'])->name('create');
-    //     Route::post('/', [AdminUserLogController::class, 'store'])->name('store');
-    //     Route::get('/stats', [AdminUserLogController::class, 'stats'])->name('stats');
-    //     Route::get('/admin/{adminUserId}/stats', [AdminUserLogController::class, 'adminStats'])->name('admin-stats');
-    //     Route::post('/export', [AdminUserLogController::class, 'export'])->name('export');
-    //     Route::post('/bulk-delete', [AdminUserLogController::class, 'bulkDelete'])->name('bulk-delete');
-    //     Route::post('/cleanup', [AdminUserLogController::class, 'cleanup'])->name('cleanup');
-
-    //     // UUID 기반 라우트
-    //     Route::get('/{userLog}', [AdminUserLogController::class, 'show'])->name('show')->where('userLog', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
-    //     Route::get('/{userLog}/edit', [AdminUserLogController::class, 'edit'])->name('edit')->where('userLog', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
-    //     Route::put('/{userLog}', [AdminUserLogController::class, 'update'])->name('update')->where('userLog', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
-    //     Route::delete('/{userLog}', [AdminUserLogController::class, 'destroy'])->name('destroy')->where('userLog', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
-    // });
-
 
     // 활동 로그 관리 - activity-log (신규)
     Route::prefix('activity-log')->name('activity-log.')->group(function () {
@@ -155,6 +144,20 @@ Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
         Route::put('/{activityLog}', [\Jiny\Admin\Http\Controllers\AdminActivityLogController::class, 'update'])->name('update');
         Route::delete('/{activityLog}', [\Jiny\Admin\Http\Controllers\AdminActivityLogController::class, 'destroy'])->name('destroy');
         Route::get('/download-csv', [\Jiny\Admin\Http\Controllers\AdminActivityLogController::class, 'downloadCsv'])->name('downloadCsv');
+    });
+
+    // 관리자 감사 로그 관리 - audit-logs (신규)
+    Route::prefix('audit-logs')->name('audit-logs.')->group(function () {
+        Route::get('/', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'index'])->name('index');
+        Route::get('/create', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'create'])->name('create');
+        Route::post('/', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'store'])->name('store');
+        Route::get('/{id}', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'show'])->name('show')->where('id', '[0-9]+');
+        Route::get('/{id}/edit', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
+        Route::put('/{id}', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'update'])->name('update')->where('id', '[0-9]+');
+        Route::delete('/{id}', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
+        Route::post('/bulk-delete', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'bulkDelete'])->name('bulk-delete');
+        // CSV 다운로드 라우트 추가
+        Route::get('/download-csv', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'downloadCsv'])->name('downloadCsv');
     });
 
 
@@ -206,19 +209,7 @@ Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
         Route::get('/download-csv', [\Jiny\Admin\Http\Controllers\AdminUserLogController::class, 'downloadCsv'])->name('downloadCsv');
     });
 
-    // 관리자 감사 로그 관리 - audit-logs (신규)
-    Route::prefix('audit-logs')->name('audit-logs.')->group(function () {
-        Route::get('/', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'index'])->name('index');
-        Route::get('/create', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'create'])->name('create');
-        Route::post('/', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'store'])->name('store');
-        Route::get('/{id}', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'show'])->name('show')->where('id', '[0-9]+');
-        Route::get('/{id}/edit', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
-        Route::put('/{id}', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'update'])->name('update')->where('id', '[0-9]+');
-        Route::delete('/{id}', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
-        Route::post('/bulk-delete', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'bulkDelete'])->name('bulk-delete');
-        // CSV 다운로드 라우트 추가
-        Route::get('/download-csv', [\Jiny\Admin\Http\Controllers\AdminAuditLogController::class, 'downloadCsv'])->name('downloadCsv');
-    });
+    
 
     // 권한 관리 - permissions
     Route::prefix('permissions')->name('permissions.')->group(function () {
@@ -263,3 +254,21 @@ Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
 
 });
 
+
+Route::prefix('admin/system')->middleware(['web', 'admin:auth'])
+    ->name('admin.system.')->group(function () {
+
+    // 시스템 성능 로그 관리
+    Route::prefix('performance-logs')->name('performance-logs.')->group(function () {
+        Route::get('/', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'index'])->name('index');
+        Route::get('/create', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'create'])->name('create');
+        Route::post('/', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'store'])->name('store');
+        Route::get('/{id}', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'show'])->name('show')->where('id', '[0-9]+');
+        Route::get('/{id}/edit', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
+        Route::put('/{id}', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'update'])->name('update')->where('id', '[0-9]+');
+        Route::delete('/{id}', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
+        Route::post('/bulk-delete', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'bulkDelete'])->name('bulk-delete');
+        Route::get('/download-csv', [\Jiny\Admin\Http\Controllers\SystemPerformanceLogController::class, 'downloadCsv'])->name('downloadCsv');
+    });
+
+});

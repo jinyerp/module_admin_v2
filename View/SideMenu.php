@@ -2,6 +2,7 @@
 namespace Jiny\Admin\View;
 
 use Illuminate\View\Component;
+use Jiny\Admin\Services\AdminSideMenuService;
 
 class SideMenu extends Component
 {
@@ -11,7 +12,6 @@ class SideMenu extends Component
     public $sidebarActiveTextColor;
     public $sidebarHoverBgColor;
     public $sidebarHoverTextColor;
-
 
     /**
      * 메뉴 JSON 파일 경로
@@ -24,27 +24,20 @@ class SideMenu extends Component
      */
     public function __construct($menuPath = null)
     {
-
-        // if($menuPath) {
-        //     $this->menuPath = app('jiny-admin') . $menuPath;
-        // } else {
-        //     // 기본 메뉴 파일 경로 설정
-        //     $this->menuPath = __DIR__ . '/../../resources/menus/admin-sidebar.json';
-        // }
-
-        // // 메뉴 서비스에 경로 설정
-        // app('admin.side-menu.service', [
-        //     'menuPath' => $this->menuPath
-        // ]);
-
-        $this->menuPath = __DIR__ . '/../../resources/menus/admin-sidebar.json';
-
+        // 메뉴 파일 경로 설정
+        if($menuPath) {
+            $this->menuPath = $menuPath;
+        } else {
+            // 기본 메뉴 파일 경로 설정
+            $this->menuPath = __DIR__ . '/../../resources/menus/admin-sidebar.json';
+        }
     }
 
     public function render()
     {
-
-        $menuService = app('admin.side-menu.service');
+        //$path = app('jiny-admin') . $this->menuPath;
+        $path = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $this->menuPath);
+        $menuService = new AdminSideMenuService($path);
 
         // 현재 URL을 기반으로 활성 메뉴 설정
         $menuService->setActiveMenuByUrl();

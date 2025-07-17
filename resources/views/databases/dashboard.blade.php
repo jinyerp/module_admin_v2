@@ -230,7 +230,7 @@
 <div class="mb-8">
     <div class="flex justify-between items-center mb-6">
         <h2 class="font-semibold text-lg">데이터베이스 통계</h2>
-        <a href="{{ route('admin.databases.migrations.index') }}" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">마이그레이션 관리</a>
+        <a href="{{ route('admin.database.migrations.index') }}" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">마이그레이션 관리</a>
     </div>
     
     <dl class="mx-auto grid grid-cols-1 gap-px bg-gray-900/5 sm:grid-cols-2 lg:grid-cols-4">
@@ -290,7 +290,7 @@
 <div class="bg-white rounded shadow p-6 mb-8">
     <div class="flex justify-between items-center mb-4">
         <h2 class="font-semibold text-lg">최신 마이그레이션 목록</h2>
-        <a href="{{ route('admin.databases.migrations.index') }}" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">전체 목록 보기</a>
+        <a href="{{ route('admin.database.migrations.index') }}" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">전체 목록 보기</a>
     </div>
     
     @if(count($recentMigrations) > 0)
@@ -513,10 +513,10 @@ function showModal(action) {
 
 async function startMigration(action) {
     const routes = {
-        'run': '{{ route("admin.databases.migrations.run") }}',
-        'rollback': '{{ route("admin.databases.migrations.rollback") }}',
-        'refresh': '{{ route("admin.databases.migrations.refresh") }}',
-        'reset': '{{ route("admin.databases.migrations.reset") }}'
+        'run': '{{ route("admin.database.migrations.run") }}',
+        'rollback': '{{ route("admin.database.migrations.rollback") }}',
+        'refresh': '{{ route("admin.database.migrations.refresh") }}',
+        'reset': '{{ route("admin.database.migrations.reset") }}'
     };
     
     // 진행상태 시뮬레이션 시작
@@ -601,7 +601,7 @@ async function startMigration(action) {
 
 async function checkMigrationStatus() {
     try {
-        const response = await makeRequest('{{ route("admin.databases.migrations.status-check") }}', {
+        const response = await makeRequest('{{ route("admin.database.migrations.status-check") }}', {
             method: 'GET'
         });
         

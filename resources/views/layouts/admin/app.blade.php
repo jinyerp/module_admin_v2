@@ -14,8 +14,9 @@
 <body class="h-full">
 
     <div>
-        {{-- 사이드바 --}}
-        <x-admin::side-menu menu-path='/resources/menu/admin-menu.json'>
+        {{-- 사이드바, 패키지의 resources 폴더 경로 설정 --}}
+        <x-admin::side-menu 
+            menu-path="{{app('jiny-admin').'/resources/menus/admin.json'}}">
         </x-admin::side-menu>
 
         {{-- 메인 컨텐츠 --}}
