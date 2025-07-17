@@ -2,7 +2,7 @@
     "menu": [
         {
             "id": "dashboard",
-            "title": "대시보드",
+            "title": "대시보드111",
             "icon": "fas fa-tachometer-alt",
             "url": "/admin",
             "order": 1

@@ -24,13 +24,13 @@
             </div>
             <div class="mt-4 sm:mt-0 flex gap-2">
                 
-                <x-link-primary href="{{ route($route . 'create') }}">
+                <x-ui::link-primary href="{{ route($route . 'create') }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                         aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                     회원추가
-                </x-link-primary>
+                </x-ui::link-primary>
             </div>
         </div>
     </div>
@@ -45,7 +45,7 @@
             <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                     <table class="min-w-full divide-y divide-gray-300">
-                        <thead>
+                        <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col"
                                     class="w-10 min-w-0 max-w-[40px] py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-3">

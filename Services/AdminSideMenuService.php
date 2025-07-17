@@ -10,9 +10,9 @@ class AdminSideMenuService
     protected $menuData;
     protected $menuPath;
 
-    public function __construct()
+    public function __construct($menuPath = null)
     {
-        $this->menuPath = __DIR__ . '/../../../resources/menus/admin-sidebar.json';
+        $this->menuPath = $menuPath ?? __DIR__ . '/../../../resources/menus/admin-sidebar.json';
         $this->loadMenuData();
     }
 

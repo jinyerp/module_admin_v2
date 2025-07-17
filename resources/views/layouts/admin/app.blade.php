@@ -15,7 +15,8 @@
 
     <div>
         {{-- 사이드바 --}}
-        <x-admin::side-menu> </x-admin::side-menu>
+        <x-admin::side-menu menu-path='/resources/menu/admin-menu.json'>
+        </x-admin::side-menu>
 
         {{-- 메인 컨텐츠 --}}
         @yield('main-content')

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Jiny\Admin\Http\Controllers\Admin\AdminPermissionLogController;
 use Jiny\Admin\Http\Controllers\Admin\SystemOperationLogController;
+use Jiny\Admin\Http\Controllers\AdminSetupController;
 
 // 관리자 API - 사용자 목록
 Route::get('/users', function () {
@@ -38,3 +39,5 @@ Route::prefix('/operation-logs')->name('operation-logs.')->group(function () {
     Route::get('/error-analysis', [SystemOperationLogController::class, 'errorAnalysis'])->name('error-analysis');
     Route::post('/export', [SystemOperationLogController::class, 'export'])->name('export');
 });
+
+// 관리자 최초 설정 라우트 제거됨

@@ -13,9 +13,9 @@
                     <span id="selectedCount">0</span>개 항목이 선택되었습니다
                 </span>
             </div>
-            <x-button-danger type="button" onclick="jinyBulkDelete('{{ $route }}')">
+            <x-ui::button-danger type="button" onclick="jinyBulkDelete('{{ $route }}')">
                 선택삭제
-            </x-button-danger>
+            </x-ui::button-danger>
         </div>
     </div>
 </div>

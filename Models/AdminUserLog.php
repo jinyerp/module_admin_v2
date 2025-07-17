@@ -5,14 +5,15 @@ namespace Jiny\Admin\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Carbon\Carbon;
 
 class AdminUserLog extends Model
 {
-    use HasUuids;
-
     protected $table = 'admin_user_logs';
+    
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     public $timestamps = false; // created_at만 사용하므로 timestamps 비활성화
 
@@ -22,6 +23,7 @@ class AdminUserLog extends Model
         'user_agent',
         'status',
         'message',
+        // 'id'는 auto-increment이므로 제외
     ];
 
     protected $casts = [

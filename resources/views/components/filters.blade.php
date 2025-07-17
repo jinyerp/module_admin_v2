@@ -22,17 +22,18 @@
                     초기화
                 </x-link-light>
 
-                @if (request('search') || request('status') || request('date_from') || request('date_to') || request('role'))
+                {{-- @if (request('search') || request('status') || request('date_from') || request('date_to') || request('role'))
                 <div class="text-sm text-gray-600">
                     <span class="font-medium">{{ $users->total() ?? 0 }}</span>건의 결과
                 </div>
-                @endif
+                @endif --}}
 
             </div>
 
-            
+    
             {{-- CSV 다운로드 버튼 --}}
             <div>
+                @if(Route::has($route . 'downloadCsv'))
                 <form id="csv-download-form" method="GET" action="{{ route($route . 'downloadCsv') }}">
                     @foreach(request()->except(['page']) as $key => $value)
                         <input type="hidden" name="{{ $key }}" value="{{ $value }}">
@@ -45,6 +46,7 @@
                         CSV 다운로드
                     </x-button-light>
                 </form>
+                @endif
             </div>
         </div>
 

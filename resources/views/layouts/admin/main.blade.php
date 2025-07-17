@@ -80,6 +80,7 @@
             <div class="px-4 sm:px-6 lg:px-8">
                 <!-- Your content -->
                 @yield('content')
+                
             </div>
         </main>
 

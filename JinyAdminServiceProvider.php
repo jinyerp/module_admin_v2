@@ -31,6 +31,13 @@ class JinyAdminServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__.'/config/auth.php', 'auth'
         );
+
+        // 패키지 절대 경로 저장
+        // app->instance()는 Laravel 컨테이너에 싱글톤 인스턴스를 바인딩하는 메서드입니다.
+        // 첫 번째 매개변수 'jiny-admin'은 컨테이너에서 사용할 키(식별자)입니다.
+        // 두 번째 매개변수 __DIR__은 현재 파일의 디렉토리 경로를 바인딩합니다.
+        // 이렇게 바인딩된 값은 app('jiny-admin')으로 어디서든 접근할 수 있습니다.
+        $this->app->instance('jiny-admin', __DIR__);
     }
 
     /**
