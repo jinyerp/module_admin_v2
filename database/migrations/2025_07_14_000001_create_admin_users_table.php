@@ -26,6 +26,12 @@ return new class extends Migration {
             $table->text('memo')->nullable();
             $table->rememberToken();
             $table->timestamps();
+            $table->unsignedBigInteger('admin_level_id')->nullable()->after('type')->comment('관리자 등급 ID');
+        });
+
+        // 외래키 제약 추가
+        Schema::table('admin_users', function (Blueprint $table) {
+            $table->foreign('admin_level_id')->references('id')->on('admin_levels')->onDelete('set null');
         });
     }
 

@@ -14,13 +14,21 @@ class AdminSetupController extends Controller
 {
     public function index(Request $request)
     {
+        // admin_levels 테이블 존재 여부 확인
+        $levelTableExists = Schema::hasTable('admin_levels');
+        if (!$levelTableExists) {
+            return redirect()
+            ->route('admin.setup')
+            ->with('message', 'admin_levels 테이블이 존재하지 않습니다. 마이그레이션을 먼저 실행하세요.');
+        }
+        
         // 접속제한
         // admin_users 테이블에 회원이 존재하는 경우 setup 접근 제한
         if (Schema::hasTable('admin_users') && DB::table('admin_users')->count() > 0) {
-            return redirect()->route('admin.login')
+            return redirect()
+                ->route('admin.login')
                 ->with('message', '관리자 로그인이 필요합니다.');
         }
-
 
         // admin_users 테이블 존재 여부 확인
         $tableExists = Schema::hasTable('admin_users');
@@ -65,12 +73,18 @@ class AdminSetupController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        // Super 등급 id 조회
+        $superLevelId = null;
+        if (Schema::hasTable('admin_levels')) {
+            $superLevelId = DB::table('admin_levels')->where('code', 'super')->value('id');
+        }
         // 최초 슈퍼관리자 계정 생성
         DB::table('admin_users')->insert([
             'name' => $request->input('name'),
             'email' => $request->input('email'),
             'password' => Hash::make($request->input('password')),
             'type' => 'super',
+            'admin_level_id' => $superLevelId,
             'status' => 'active',
             'is_verified' => true,
             'email_verified_at' => now(),

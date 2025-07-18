@@ -77,7 +77,10 @@ class JinyAdminServiceProvider extends ServiceProvider
 
         // 커스텀 미들웨어 등록
         $router = $this->app['router'];
-        $router->aliasMiddleware('admin:auth', \Jiny\Admin\Http\Middleware\AdminAuth::class);
+        $router->aliasMiddleware('admin:auth', 
+            \Jiny\Admin\Http\Middleware\AdminAuth::class);
+        $router->aliasMiddleware('admin:guest', 
+            \Jiny\Admin\Http\Middleware\AdminGuest::class);
 
     }
 

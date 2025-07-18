@@ -38,6 +38,15 @@
         },
         {
             "type": "menu",
+            "id": "sessions",
+            "label": "세션 관리",
+            "icon": "database",
+            "url": "/admin/sessions",
+            "active": false,
+            "permission": "admin.sessions"
+        },
+        {
+            "type": "menu",
             "id": "users",
             "label": "사용자 관리",
             "icon": "users",

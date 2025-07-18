@@ -57,6 +57,43 @@ class AdminSessionLogin extends Controller
                 $request->session()->regenerate();
             }
 
+            // 위치 정보 (GeoIP)
+            $loginLocation = null;
+            if (class_exists('Location')) {
+                $location = \Location::get($ip);
+                if ($location) {
+                    $loginLocation = ($location->cityName ? $location->cityName.', ' : '').$location->countryName;
+                }
+            }
+            // 디바이스 정보 (User Agent)
+            $device = null;
+            if (class_exists('Jenssegers\\Agent\\Agent')) {
+                $agent = new \Jenssegers\Agent\Agent();
+                $agent->setUserAgent($ua);
+                $device = $agent->device().' / '.$agent->platform().' / '.$agent->browser();
+            }
+            
+            // admin_sessions 테이블에 세션 정보 upsert
+            $sessionId = $request->session()->getId();
+            \DB::table('admin_sessions')->updateOrInsert(
+                ['session_id' => $sessionId],
+                [
+                    'admin_user_id' => $admin->id,
+                    'admin_name' => $admin->name,
+                    'admin_email' => $admin->email,
+                    'admin_type' => $admin->type,
+                    'ip_address' => $ip,
+                    'user_agent' => $ua,
+                    'login_location' => $loginLocation,
+                    'device' => $device,
+                    'login_at' => now(),
+                    'last_activity' => now(),
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+
             $this->log($admin->id, $ip, $ua, $logStatus, $logMsg);
             return redirect()->intended(route('admin.dashboard'))->with('success', '관리자 로그인 성공');
         } else {
@@ -127,6 +164,9 @@ class AdminSessionLogin extends Controller
         Auth::guard('admin')->logout();
 
         if ($request->hasSession()) {
+            // admin_sessions 테이블에서 세션 정보 삭제
+            $sessionId = $request->session()->getId();
+            \DB::table('admin_sessions')->where('session_id', $sessionId)->delete();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }

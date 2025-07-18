@@ -16,8 +16,10 @@ use Jiny\Admin\Http\Controllers\Logs\AdminAuditLogController;
 
 use Jiny\Admin\Http\Controllers\AdminSetupController;
 
-
-// 관리자 인증 라우트 그룹 (web 미들웨어 적용)
+/**
+ * 관리자 Session 로그인
+ * admin:guest 미들웨어 적용, session 인증 없이 접근 가능
+ */
 Route::middleware(['web'])->group(function () {
     // 로그인 폼
     Route::get('/admin/login', [
@@ -32,6 +34,12 @@ Route::middleware(['web'])->group(function () {
     Route::post('/admin/login/ajax', [
         AdminSessionLogin::class,
         'loginAjax'])->name('admin.login.ajax');
+});
+
+
+// 관리자 인증 라우트 그룹 (web 미들웨어 적용)
+Route::middleware(['web'])->group(function () {
+    
 
     // 로그아웃 처리
     Route::get('/admin/logout', [
