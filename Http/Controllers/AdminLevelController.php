@@ -8,8 +8,6 @@ use Jiny\Admin\Http\Controllers\AdminResourceController;
 
 class AdminLevelController extends AdminResourceController
 {
-    private $filterable = [];
-    private $validFilters = [];
 
     public function __construct()
     {
@@ -34,13 +32,21 @@ class AdminLevelController extends AdminResourceController
         ];
     }
 
-    public function index(Request $request)
+    /**
+     * handle index
+     * this method is used to handle the index request
+     * @param Request $request
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function _index(Request $request)
     {
         $query = AdminLevel::withCount(['users']);
 
         $filters = $this->getFilterParameters($request);
-        //dd($filters);
-        $query = $this->applyFilter($filters, $query);
+     
+        // 부분 일치가 자연스러운 필드
+        $likeFields = ['name', 'code', 'badge_color'];
+        $query = $this->applyFilter($filters, $query, $likeFields);
         
         $sortField = $request->get('sort', 'id');
         $sortDirection = $request->get('direction', 'desc');
@@ -53,51 +59,24 @@ class AdminLevelController extends AdminResourceController
             'rows' => $rows,
             'filters' => $filters,
             'sort' => $sortField,
-            'dir' => $sortDirection,
-            'route' => $this->getRouteName($request)
+            'dir' => $sortDirection
         ]);
-    }
-
-    /**
-     * 필터 적용
-     */
-    public function applyFilter($filters, $query)
-    {
-        // 부분 일치가 자연스러운 필드
-        $likeFields = ['name', 'code', 'badge_color'];
-
-        foreach ($this->filterable as $column) {
-            if (isset($filters[$column]) && $filters[$column] !== '') {
-                if (in_array($column, $likeFields)) {
-                    $query->where($column, 'like', "%{$filters[$column]}%");
-                } else {
-                    $query->where($column, $filters[$column]);
-                }
-            }
-        }
-
-        // search는 or 조건
-        if (isset($filters['search']) && $filters['search'] !== '') {
-            $query->where(function($q) use ($filters) {
-                $q->where('name', 'like', "%{$filters['search']}%")
-                  ->orWhere('code', 'like', "%{$filters['search']}%")
-                  ->orWhere('badge_color', 'like', "%{$filters['search']}%");
-            });
-        }
-
-        return $query;
     }
 
     
 
-    public function create(Request $request)
+    /**
+     * handle create
+     * this method is used to handle the create request
+     * @param Request $request
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function _create(Request $request)
     {  
-        return view('jiny-admin::admin-levels.create',[
-            'route' => $this->getRouteName($request)
-        ]);
+        return view('jiny-admin::admin-levels.create');
     }
 
-    public function store(Request $request)
+    public function _store(Request $request)
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -116,18 +95,24 @@ class AdminLevelController extends AdminResourceController
         ]);
     }
 
-    public function edit(Request $request, $id)
+    /**
+     * handle edit
+     * this method is used to handle the edit request
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function _edit(Request $request, $id)
     {
         $level = AdminLevel::findOrFail($id);
         // $route = $this->getRouteName($request);
 
         return view('jiny-admin::admin-levels.edit', [
-            'item' => $level, // 수정 데이터는 item 변수로 전달(필수)
-            'route' => $this->getRouteName($request)
+            'item' => $level // 수정 데이터는 item 변수로 전달(필수)
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function _update(Request $request, $id)
     {
         $level = AdminLevel::findOrFail($id);
         $data = $request->validate([
@@ -147,7 +132,7 @@ class AdminLevelController extends AdminResourceController
         ]);
     }
 
-    public function destroy(Request $request, $id)
+    public function _destroy(Request $request, $id)
     {
         $level = AdminLevel::findOrFail($id);
         $level->delete();
