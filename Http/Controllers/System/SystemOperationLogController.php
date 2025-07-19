@@ -39,7 +39,7 @@ class SystemOperationLogController extends Controller
         // 통계 데이터
         $stats = $this->getStats($request);
 
-        return view('admin::admin.operation-logs.index', compact('logs', 'stats'));
+        return view('jiny-admin::systems.operation-logs.index', compact('logs', 'stats'));
     }
 
     /**
@@ -49,7 +49,7 @@ class SystemOperationLogController extends Controller
     {
         $log = SystemOperationLog::with(['performedBy', 'target'])->findOrFail($id);
 
-        return view('admin::admin.operation-logs.show', compact('log'));
+        return view('jiny-admin::systems.operation-logs.show', compact('log'));
     }
 
     /**
@@ -245,47 +245,57 @@ class SystemOperationLogController extends Controller
     private function applyFilters($query, Request $request)
     {
         // 운영 타입 필터
-        if ($request->filled('operation_type')) {
-            $query->where('operation_type', $request->operation_type);
+        if ($request->filled('filter_operation_type')) {
+            $query->where('operation_type', $request->filter_operation_type);
         }
 
         // 운영명 필터
-        if ($request->filled('operation_name')) {
-            $query->where('operation_name', 'like', '%' . $request->operation_name . '%');
+        if ($request->filled('filter_operation_name')) {
+            $query->where('operation_name', 'like', '%' . $request->filter_operation_name . '%');
         }
 
         // 수행자 타입 필터
-        if ($request->filled('performed_by_type')) {
-            $query->where('performed_by_type', $request->performed_by_type);
+        if ($request->filled('filter_performed_by_type')) {
+            $query->where('performed_by_type', $request->filter_performed_by_type);
         }
 
         // 상태 필터
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($request->filled('filter_status')) {
+            $query->where('status', $request->filter_status);
         }
 
         // 중요도 필터
-        if ($request->filled('severity')) {
-            $query->where('severity', $request->severity);
+        if ($request->filled('filter_severity')) {
+            $query->where('severity', $request->filter_severity);
         }
 
         // 날짜 범위 필터
-        if ($request->filled('date_from')) {
-            $query->where('created_at', '>=', $request->date_from);
+        if ($request->filled('filter_date_from')) {
+            $query->where('created_at', '>=', $request->filter_date_from);
         }
 
-        if ($request->filled('date_to')) {
-            $query->where('created_at', '<=', $request->date_to . ' 23:59:59');
+        if ($request->filled('filter_date_to')) {
+            $query->where('created_at', '<=', $request->filter_date_to . ' 23:59:59');
         }
 
         // IP 주소 필터
-        if ($request->filled('ip_address')) {
-            $query->where('ip_address', 'like', '%' . $request->ip_address . '%');
+        if ($request->filled('filter_ip_address')) {
+            $query->where('ip_address', 'like', '%' . $request->filter_ip_address . '%');
         }
 
         // 세션 ID 필터
-        if ($request->filled('session_id')) {
-            $query->where('session_id', $request->session_id);
+        if ($request->filled('filter_session_id')) {
+            $query->where('session_id', $request->filter_session_id);
+        }
+
+        // 검색어 필터
+        if ($request->filled('filter_search')) {
+            $search = $request->filter_search;
+            $query->where(function($q) use ($search) {
+                $q->where('operation_name', 'like', '%' . $search . '%')
+                  ->orWhere('ip_address', 'like', '%' . $search . '%')
+                  ->orWhere('operation_type', 'like', '%' . $search . '%');
+            });
         }
 
         return $query;
@@ -296,8 +306,18 @@ class SystemOperationLogController extends Controller
      */
     private function applySorting($query, Request $request)
     {
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
+        $sortBy = $request->get('sort', 'created_at');
+        $sortOrder = $request->get('direction', 'desc');
+
+        // 허용된 정렬 필드만 사용
+        $allowedSortFields = [
+            'created_at', 'operation_name', 'operation_type', 'status', 
+            'execution_time', 'severity', 'ip_address'
+        ];
+
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'created_at';
+        }
 
         return $query->orderBy($sortBy, $sortOrder);
     }
@@ -315,18 +335,36 @@ class SystemOperationLogController extends Controller
         // 검색 필터 적용
         $query = $this->applyFilters($query, $request);
 
+        // 기본 통계
+        $totalOperations = $query->count();
+        $successfulOperations = (clone $query)->where('status', 'success')->count();
+        $failedOperations = (clone $query)->where('status', 'failed')->count();
+        $partialOperations = (clone $query)->where('status', 'partial')->count();
+        
+        // 실행 시간 통계
+        $executionTimeQuery = (clone $query)->whereNotNull('execution_time');
+        $avgExecutionTime = $executionTimeQuery->avg('execution_time');
+        $maxExecutionTime = $executionTimeQuery->max('execution_time');
+        $slowOperations = (clone $query)->where('execution_time', '>', 1000)->count();
+        
+        // 고유 값 통계 (SQLite 호환)
+        $uniqueOperationTypes = (clone $query)->distinct()->count('operation_type');
+        $uniquePerformers = (clone $query)->distinct()->count(DB::raw('performed_by_type || "_" || performed_by_id'));
+        
+        // 성공률 계산
+        $successRate = $totalOperations > 0 ? round(($successfulOperations / $totalOperations) * 100, 2) : 0;
+
         return [
-            'total_operations' => $query->count(),
-            'successful_operations' => $query->where('status', 'success')->count(),
-            'failed_operations' => $query->where('status', 'failed')->count(),
-            'partial_operations' => $query->where('status', 'partial')->count(),
-            'avg_execution_time' => $query->whereNotNull('execution_time')->avg('execution_time'),
-            'max_execution_time' => $query->whereNotNull('execution_time')->max('execution_time'),
-            'slow_operations' => $query->where('execution_time', '>', 1000)->count(),
-            'unique_operation_types' => $query->distinct('operation_type')->count('operation_type'),
-            'unique_performers' => $query->distinct('performed_by_type', 'performed_by_id')->count(),
-            'success_rate' => $query->count() > 0 ?
-                round(($query->where('status', 'success')->count() / $query->count()) * 100, 2) : 0,
+            'total_operations' => $totalOperations,
+            'successful_operations' => $successfulOperations,
+            'failed_operations' => $failedOperations,
+            'partial_operations' => $partialOperations,
+            'avg_execution_time' => $avgExecutionTime,
+            'max_execution_time' => $maxExecutionTime,
+            'slow_operations' => $slowOperations,
+            'unique_operation_types' => $uniqueOperationTypes,
+            'unique_performers' => $uniquePerformers,
+            'success_rate' => $successRate,
         ];
     }
 

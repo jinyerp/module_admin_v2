@@ -66,7 +66,7 @@ class SystemMaintenanceLogController extends Controller
             'failed' => SystemMaintenanceLog::where('status', 'failed')->count(),
         ];
 
-        return view('jiny-admin::admin.system-maintenance-logs.index', [
+        return view('jiny-admin::systems.maintenance-logs.index', [
             'maintenanceLogs' => $maintenanceLogs,
             'stats' => $stats,
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
@@ -84,7 +84,7 @@ class SystemMaintenanceLogController extends Controller
     {
         $admins = AdminUser::where('is_active', true)->get();
 
-        return view('jiny-admin::admin.system-maintenance-logs.create', [
+        return view('jiny-admin::systems.maintenance-logs.create', [
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
             'statuses' => SystemMaintenanceLog::getStatuses(),
             'priorities' => SystemMaintenanceLog::getPriorities(),
@@ -130,7 +130,7 @@ class SystemMaintenanceLogController extends Controller
     {
         $systemMaintenanceLog->load(['initiatedBy', 'completedBy']);
 
-        return view('jiny-admin::admin.system-maintenance-logs.show', [
+        return view('jiny-admin::systems.maintenance-logs.show', [
             'maintenanceLog' => $systemMaintenanceLog,
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
             'statuses' => SystemMaintenanceLog::getStatuses(),
@@ -145,7 +145,7 @@ class SystemMaintenanceLogController extends Controller
     {
         $admins = AdminUser::where('is_active', true)->get();
 
-        return view('jiny-admin::admin.system-maintenance-logs.edit', [
+        return view('jiny-admin::systems.maintenance-logs.edit', [
             'maintenanceLog' => $systemMaintenanceLog,
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
             'statuses' => SystemMaintenanceLog::getStatuses(),
@@ -227,7 +227,7 @@ class SystemMaintenanceLogController extends Controller
             'downtime_required' => SystemMaintenanceLog::where('requires_downtime', true)->count(),
         ];
 
-        return view('jiny-admin::admin.system-maintenance-logs.stats', [
+        return view('jiny-admin::systems.maintenance-logs.stats', [
             'stats' => $stats,
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
             'priorities' => SystemMaintenanceLog::getPriorities(),
@@ -246,7 +246,7 @@ class SystemMaintenanceLogController extends Controller
 
         $count = SystemMaintenanceLog::whereIn('id', $request->selected_logs)->delete();
 
-        return redirect()->route('admin.system-maintenance-logs.index')
+        return redirect()->route('systems.maintenance-logs.index')
             ->with('success', "{$count}개의 유지보수 로그가 성공적으로 삭제되었습니다.");
     }
 

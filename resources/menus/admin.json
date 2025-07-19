@@ -16,202 +16,47 @@
             "icon": "home",
             "url": "/admin/admin/users",
             "active": false,
-            "permission": "admin.admin-users"
-        },
-        {
-            "type": "menu",
-            "id": "admin-user-logs",
-            "label": "관리자 로그",
-            "icon": "home",
-            "url": "/admin/admin/user-logs",
-            "active": false,
-            "permission": "admin.admin-user-logs"
-        },
-        {
-            "type": "menu",
-            "id": "database",
-            "label": "데이터베이스",
-            "icon": "database",
-            "url": "/admin/database",
-            "active": false,
-            "permission": "admin.database"
-        },
-        {
-            "type": "menu",
-            "id": "sessions",
-            "label": "세션 관리",
-            "icon": "database",
-            "url": "/admin/sessions",
-            "active": false,
-            "permission": "admin.sessions"
-        },
-        {
-            "type": "menu",
-            "id": "users",
-            "label": "사용자 관리",
-            "icon": "users",
-            "url": "/admin/users",
-            "active": false,
-            "permission": "admin.users",
+            "permission": "admin.admin-users",
             "children": [
                 {
                     "type": "menu",
                     "id": "user-list",
-                    "label": "전체회원",
-                    "url": "/admin/auth/users/list",
-                    "permission": "admin.users.list"
+                    "label": "운영자",
+                    "url": "/admin/admin/users",
+                    "permission": "admin.admin.users.list"
                 },
                 {
                     "type": "menu",
-                    "id": "user-create",
-                    "label": "사용자 등록",
-                    "url": "/admin/auth/users/create",
-                    "permission": "admin.users.create"
+                    "id": "sessions",
+                    "label": "세션 관리",
+                    "url": "/admin/sessions",
+                    "permission": "admin.sessions"
+                }
+            ]
+        },
+        {
+            "type": "menu",
+            "id": "admin-user-logs",
+            "label": "로그",
+            "icon": "home",
+            "url": "/admin/admin/user-logs",
+            "active": false,
+            "permission": "admin.admin-user-logs",
+            "children": [
+                {
+                    "type": "menu",
+                    "id": "user-list",
+                    "label": "접속 로그",
+                    "url": "/admin/admin/user-logs",
+                    "permission": "admin.admin.user-logs"
                 },
                 {
                     "type": "menu",
-                    "id": "agreements",
-                    "label": "약관 관리",
-                    "url": "/admin/agreements",
-                    "permission": "admin.agreements",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "agreements-list",
-                            "label": "약관 목록",
-                            "url": "/admin/agreements",
-                            "permission": "admin.agreements.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "agreements-create",
-                            "label": "약관 등록",
-                            "url": "/admin/agreements/create",
-                            "permission": "admin.agreements.create"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "agreements-stats",
-                            "label": "약관 통계",
-                            "url": "/admin/agreements/stats",
-                            "permission": "admin.agreements.stats"
-                        }
-                    ]
-                },
-                {
-                    "type": "menu",
-                    "id": "countries",
-                    "label": "국가 관리",
-                    "url": "/admin/countries",
-                    "permission": "admin.countries",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "countries-list",
-                            "label": "국가 목록",
-                            "url": "/admin/countries",
-                            "permission": "admin.countries.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "countries-create",
-                            "label": "국가 등록",
-                            "url": "/admin/countries/create",
-                            "permission": "admin.countries.create"
-                        }
-                    ]
-                },
-                {
-                    "type": "menu",
-                    "id": "languages",
-                    "label": "언어 관리",
-                    "url": "/admin/languages",
-                    "permission": "admin.languages",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "languages-list",
-                            "label": "언어 목록",
-                            "url": "/admin/languages",
-                            "permission": "admin.languages.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "languages-create",
-                            "label": "언어 등록",
-                            "url": "/admin/languages/create",
-                            "permission": "admin.languages.create"
-                        }
-                    ]
-                },
-                {
-                    "type": "menu",
-                    "id": "social",
-                    "label": "소셜 계정 관리",
-                    "url": "/admin/social",
-                    "permission": "admin.social",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "social-list",
-                            "label": "소셜 계정 목록",
-                            "url": "/admin/social",
-                            "permission": "admin.social.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "social-create",
-                            "label": "소셜 계정 등록",
-                            "url": "/admin/social/create",
-                            "permission": "admin.social.create"
-                        }
-                    ]
-                },
-                {
-                    "type": "menu",
-                    "id": "addresses",
-                    "label": "주소 관리",
-                    "url": "/admin/addresses",
-                    "permission": "admin.addresses",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "addresses-list",
-                            "label": "주소 목록",
-                            "url": "/admin/addresses",
-                            "permission": "admin.addresses.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "addresses-create",
-                            "label": "주소 등록",
-                            "url": "/admin/addresses/create",
-                            "permission": "admin.addresses.create"
-                        }
-                    ]
-                },
-                {
-                    "type": "menu",
-                    "id": "phones",
-                    "label": "전화번호 관리",
-                    "url": "/admin/phones",
-                    "permission": "admin.phones",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "phones-list",
-                            "label": "전화번호 목록",
-                            "url": "/admin/phones",
-                            "permission": "admin.phones.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "phones-create",
-                            "label": "전화번호 등록",
-                            "url": "/admin/phones/create",
-                            "permission": "admin.phones.create"
-                        }
-                    ]
+                    "id": "admin-2fa-logs",
+                    "label": "2FA 로그",
+                    "url": "/admin/logs/2fa",
+                    "active": false,
+                    "permission": "admin.logs.2fa"
                 }
             ]
         },
@@ -239,251 +84,68 @@
                     "url": "/admin/admin/audit-logs",
                     "active": false,
                     "permission": "admin.admin.audit-logs"
-                },
-                {
-                    "type": "menu",
-                    "id": "admin-2fa-logs",
-                    "label": "2FA 로그",
-                    "url": "/admin/logs/2fa",
-                    "active": false,
-                    "permission": "admin.logs.2fa"
                 }
             ]
         },
         {
             "type": "menu",
-            "id": "supplementary",
-            "label": "보완",
-            "icon": "wrench-screwdriver",
-            "url": "/admin/supplementary",
+            "id": "database",
+            "label": "데이터베이스",
+            "icon": "database",
+            "url": "/admin/database",
             "active": false,
-            "permission": "admin.supplementary",
-            "children": [
-                {
-                    "type": "menu",
-                    "id": "blacklist",
-                    "label": "블랙리스트",
-                    "url": "/admin/blacklist",
-                    "permission": "admin.blacklist",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "blacklist-list",
-                            "label": "블랙리스트 목록",
-                            "url": "/admin/blacklist",
-                            "permission": "admin.blacklist.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "blacklist-create",
-                            "label": "블랙리스트 등록",
-                            "url": "/admin/blacklist/create",
-                            "permission": "admin.blacklist.create"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "blacklist-stats",
-                            "label": "블랙리스트 통계",
-                            "url": "/admin/blacklist/stats",
-                            "permission": "admin.blacklist.stats"
-                        }
-                    ]
-                },
-                {
-                    "type": "menu",
-                    "id": "reserved",
-                    "label": "사용자 예약",
-                    "url": "/admin/reserved",
-                    "permission": "admin.reserved",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "reserved-list",
-                            "label": "예약 목록",
-                            "url": "/admin/reserved",
-                            "permission": "admin.reserved.list"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "reserved-create",
-                            "label": "예약 등록",
-                            "url": "/admin/reserved/create",
-                            "permission": "admin.reserved.create"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "reserved-stats",
-                            "label": "예약 통계",
-                            "url": "/admin/reserved/stats",
-                            "permission": "admin.reserved.stats"
-                        }
-                    ]
-                }
-            ]
+            "permission": "admin.database"
         },
         {
             "type": "menu",
-            "id": "projects",
-            "label": "프로젝트",
-            "icon": "folder",
-            "url": "/admin/projects",
-            "active": false,
-            "permission": "admin.projects"
-        },
-        {
-            "type": "menu",
-            "id": "calendar",
-            "label": "캘린더",
-            "icon": "calendar",
-            "url": "/admin/calendar",
-            "active": false,
-            "permission": "admin.calendar"
-        },
-        {
-            "type": "menu",
-            "id": "documents",
-            "label": "문서",
-            "icon": "document",
-            "url": "/admin/documents",
-            "active": false,
-            "permission": "admin.documents"
-        },
-        {
-            "type": "menu",
-            "id": "reports",
-            "label": "보고서",
+            "id": "system",
+            "label": "시스템",
             "icon": "chart",
-            "url": "/admin/reports",
+            "url": "/admin/systems",
             "active": false,
-            "permission": "admin.reports"
-        },
-        {
-            "type": "title",
-            "id": "your-teams-title",
-            "label": "Your teams"
-        },
-        {
-            "type": "menu",
-            "id": "teams",
-            "label": "팀",
-            "icon": "user-group",
-            "url": "#",
-            "active": false,
-            "permission": "admin.teams",
+            "permission": "admin.system",
             "children": [
                 {
                     "type": "menu",
-                    "id": "heroicons",
-                    "label": "Heroicons",
-                    "initial": "H",
-                    "url": "#"
+                    "id": "system-dashboard",
+                    "label": "시스템 정보",
+                    "url": "/admin/systems",
+                    "permission": "admin.systems.dashboard"
                 },
                 {
                     "type": "menu",
-                    "id": "tailwind-labs",
-                    "label": "Tailwind Labs",
-                    "initial": "T",
-                    "url": "#"
+                    "id": "backup-logs",
+                    "label": "백업 로그",
+                    "url": "/admin/systems/backup-logs",
+                    "permission": "admin.systems.backup-logs"
                 },
                 {
                     "type": "menu",
-                    "id": "workcation",
-                    "label": "Workcation",
-                    "initial": "W",
-                    "url": "#"
-                }
-            ]
-        },
-        {
-            "type": "menu",
-            "id": "menu-management",
-            "label": "메뉴 관리",
-            "icon": "menu",
-            "url": "/admin/system/menu",
-            "active": false,
-            "permission": "admin.menu"
-        },
-        {
-            "type": "menu",
-            "id": "logs",
-            "label": "로그 관리",
-            "icon": "document-text",
-            "url": "/admin/logs",
-            "active": false,
-            "permission": "admin.logs",
-            "children": [
-                {
-                    "type": "menu",
-                    "id": "activity-logs",
-                    "label": "활동 로그",
-                    "url": "/admin/logs/activity",
-                    "permission": "admin.logs.activity"
+                    "id": "maintenance-logs",
+                    "label": "유지보수 로그",
+                    "url": "/admin/systems/maintenance-logs",
+                    "permission": "admin.systems.maintenance-logs"
                 },
                 {
                     "type": "menu",
-                    "id": "audit-logs",
-                    "label": "감사 로그",
-                    "url": "/admin/logs/audit",
-                    "permission": "admin.logs.audit"
+                    "id": "operation-logs",
+                    "label": "운영 로그",
+                    "url": "/admin/systems/operation-logs",
+                    "permission": "admin.systems.operation-logs"
+                },
+                {
+                    "type": "menu",
+                    "id": "performance-logs",
+                    "label": "성능 로그",
+                    "url": "/admin/systems/performance-logs",
+                    "permission": "admin.systems.performance-logs"
                 }
             ]
         }
+        
     ],
     "bottom_menu": [
-        {
-            "type": "menu",
-            "id": "admin",
-            "label": "관리자",
-            "icon": "settings",
-            "url": "/admin/admin",
-            "active": false,
-            "permission": "admin.admin",
-            "children": [
-                {
-                    "type": "menu",
-                    "id": "users",
-                    "label": "사용자 관리",
-                    "icon": "document-text",
-                    "url": "/admin/admin/users",
-                    "active": false,
-                    "permission": "admin.admin.users"
-                },
-                {
-                    "type": "menu",
-                    "id": "logs",
-                    "label": "접속 관리",
-                    "icon": "document-text",
-                    "url": "/admin/admin/logs/user",
-                    "active": false,
-                    "permission": "admin.admin.logs"
-                },
-                {
-                    "type": "menu",
-                    "id": "logs",
-                    "label": "로그 관리",
-                    "icon": "document-text",
-                    "url": "/admin/admin/logs",
-                    "active": false,
-                    "permission": "admin.logs",
-                    "children": [
-                        {
-                            "type": "menu",
-                            "id": "activity-logs",
-                            "label": "활동 로그",
-                            "url": "/admin/admin/logs/activity",
-                            "permission": "admin.logs.activity"
-                        },
-                        {
-                            "type": "menu",
-                            "id": "audit-logs",
-                            "label": "감사 로그",
-                            "url": "/admin/admin/logs/audit",
-                            "permission": "admin.logs.audit"
-                        }
-                    ]
-                }
-            ]
-        },
+
         {
             "type": "menu",
             "id": "setting-mail",
