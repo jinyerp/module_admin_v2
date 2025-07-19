@@ -35,3 +35,20 @@ Route::prefix('admin/admin/levels')->name('admin.admin.levels.')->middleware(['w
 });
 
 
+Route::prefix('admin/logs')->middleware(['web', 'admin:auth'])
+    ->name('admin.logs.')->group(function () {
+
+    // 2FA 로그 관리 - 2fa-logs
+    Route::prefix('2fa')->name('2fa.')->group(function () {
+        Route::get('/', [\Jiny\Admin\Http\Controllers\Admin2FALogController::class, 'index'])->name('index');
+        Route::get('/stats', [\Jiny\Admin\Http\Controllers\Admin2FALogController::class, 'stats'])->name('stats');
+        Route::get('/export', [\Jiny\Admin\Http\Controllers\Admin2FALogController::class, 'export'])->name('export');
+        Route::post('/bulk-delete', [\Jiny\Admin\Http\Controllers\Admin2FALogController::class, 'bulkDelete'])->name('bulk-delete');
+        Route::post('/cleanup', [\Jiny\Admin\Http\Controllers\Admin2FALogController::class, 'cleanup'])->name('cleanup');
+        Route::get('/{id}', [\Jiny\Admin\Http\Controllers\Admin2FALogController::class, 'show'])->name('show')->where('id', '[0-9]+');
+        Route::delete('/{id}', [\Jiny\Admin\Http\Controllers\Admin2FALogController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
+    });
+
+});
+
+

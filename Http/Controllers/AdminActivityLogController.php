@@ -16,6 +16,19 @@ class AdminActivityLogController extends Controller
     {
         $route = 'admin.admin.activity-log.';
         $rows = AdminActivityLog::with('adminUser')->orderByDesc('id')->paginate(20);
+        
+        // 디버깅: 첫 번째 로그의 필드 확인
+        if ($rows->count() > 0) {
+            $firstLog = $rows->first();
+            \Log::info('Activity Log Debug', [
+                'id' => $firstLog->id,
+                'module' => $firstLog->module,
+                'target_type' => $firstLog->target_type,
+                'action' => $firstLog->action,
+                'admin_user_id' => $firstLog->admin_user_id,
+            ]);
+        }
+        
         return view('jiny-admin::activity-logs.index', [
             'rows' => $rows,
             'route' => $route,

@@ -25,6 +25,27 @@
                     <p class="text-lg font-semibold text-purple-900">활성</p>
                     <p class="text-sm text-purple-600">관리자 권한</p>
                 </div>
+                <div class="bg-{{ $admin->has2FAEnabled() ? 'green' : ($admin->needs2FASetup() ? 'red' : 'yellow') }}-50 p-4 rounded-lg">
+                    <h3 class="text-sm font-medium text-{{ $admin->has2FAEnabled() ? 'green' : ($admin->needs2FASetup() ? 'red' : 'yellow') }}-800">2FA 상태</h3>
+                    <p class="text-lg font-semibold text-{{ $admin->has2FAEnabled() ? 'green' : ($admin->needs2FASetup() ? 'red' : 'yellow') }}-900">
+                        @if($admin->has2FAEnabled())
+                            활성화
+                        @elseif($admin->needs2FASetup())
+                            필수 설정
+                        @else
+                            비활성화
+                        @endif
+                    </p>
+                    <p class="text-sm text-{{ $admin->has2FAEnabled() ? 'green' : ($admin->needs2FASetup() ? 'red' : 'yellow') }}-600">
+                        @if($admin->has2FAEnabled())
+                            <a href="{{ route('admin.admin.users.2fa.manage', $admin->id) }}" class="underline">관리하기</a>
+                        @elseif($admin->needs2FASetup())
+                            <a href="{{ route('admin.admin.users.2fa.setup', $admin->id) }}" class="underline font-bold">지금 설정하기</a>
+                        @else
+                            <a href="{{ route('admin.admin.users.2fa.setup', $admin->id) }}" class="underline">설정하기</a>
+                        @endif
+                    </p>
+                </div>
             </div>
         </div>
     </div>

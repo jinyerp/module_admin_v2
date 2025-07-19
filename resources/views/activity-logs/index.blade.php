@@ -47,6 +47,8 @@
                                 </th>
                                 <th class="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-3">ID</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">관리자</th>
+                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">모듈</th>
+                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">테이블</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">활동</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">설명</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">IP</th>
@@ -67,7 +69,19 @@
                                         </div>
                                     </td>
                                     <td class="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-3">{{ $log->id }}</td>
-                                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{{ $log->adminUser?->name }}</td>
+                                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{{ $log->adminUser?->name ?? $log->adminUser?->email ?? 'Unknown' }}</td>
+                                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                        {{ $log->module ?? 'N/A' }}
+                                        @if(config('app.debug'))
+                                            <br><small class="text-xs text-gray-400">Debug: {{ $log->module ?? 'null' }}</small>
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                        {{ $log->target_type ?? 'N/A' }}
+                                        @if(config('app.debug'))
+                                            <br><small class="text-xs text-gray-400">Debug: {{ $log->target_type ?? 'null' }}</small>
+                                        @endif
+                                    </td>
                                     <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{{ $log->action }}</td>
                                     <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{{ $log->description }}</td>
                                     <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{{ $log->ip_address }}</td>

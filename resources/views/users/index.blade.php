@@ -153,6 +153,9 @@
                                         </span>
                                     </a>
                                 </th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                    2FA 상태
+                                </th>
                                 <th scope="col" class="relative py-3.5 pr-4 pl-3 sm:pr-3">
                                     <span class="sr-only">Edit</span>
                                 </th>
@@ -213,6 +216,15 @@
                                     <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{{ $item->last_login_at }}
                                     </td>
                                     <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{{ $item->login_count }}
+                                    </td>
+                                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                        @if($item->has2FAEnabled())
+                                            <x-ui::badge-success text="활성화" />
+                                        @elseif($item->needs2FASetup())
+                                            <x-ui::badge-danger text="필수 설정" />
+                                        @else
+                                            <x-ui::badge-warning text="비활성화" />
+                                        @endif
                                     </td>
                                     <td
                                         class="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-3">

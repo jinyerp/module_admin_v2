@@ -81,6 +81,8 @@ class JinyAdminServiceProvider extends ServiceProvider
             \Jiny\Admin\Http\Middleware\AdminAuth::class);
         $router->aliasMiddleware('admin:guest', 
             \Jiny\Admin\Http\Middleware\AdminGuest::class);
+        $router->aliasMiddleware('admin:2fa', 
+            \Jiny\Admin\Http\Middleware\Admin2FA::class);
 
     }
 

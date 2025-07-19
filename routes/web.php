@@ -39,12 +39,23 @@ Route::middleware(['web'])->group(function () {
 
 // 관리자 인증 라우트 그룹 (web 미들웨어 적용)
 Route::middleware(['web'])->group(function () {
-    
-
     // 로그아웃 처리
     Route::get('/admin/logout', [
         AdminSessionLogin::class,
         'logout'])->name('admin.logout');
+});
+
+// 2FA 인증 라우트 (로그인 후, 2FA 검증이 필요한 페이지)
+Route::middleware(['web', 'admin:auth'])->group(function () {
+    // 2FA 인증 페이지
+    Route::get('/admin/2fa/challenge', [
+        \Jiny\Admin\Http\Controllers\Auth\AdminTwoFactorController::class,
+        'challenge'])->name('admin.2fa.challenge');
+    
+    // 2FA 인증 처리
+    Route::post('/admin/2fa/verify', [
+        \Jiny\Admin\Http\Controllers\Auth\AdminTwoFactorController::class,
+        'verify'])->name('admin.2fa.verify');
 });
 
 // 관리자 최초 설정 (인증 없이 접근 가능)
@@ -201,6 +212,23 @@ Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
         Route::get('/download-csv', [
             \Jiny\Admin\Http\Controllers\AdminUserController::class,
             'downloadCsv'])->name('downloadCsv');
+        
+        // 관리자별 2FA 설정
+        Route::get('/{id}/2fa/setup', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'setup'])->name('2fa.setup')->where('id', '[0-9]+');
+        Route::post('/{id}/2fa/enable', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'enable'])->name('2fa.enable')->where('id', '[0-9]+');
+        Route::get('/{id}/2fa/manage', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'manage'])->name('2fa.manage')->where('id', '[0-9]+');
+        Route::post('/{id}/2fa/disable', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'disable'])->name('2fa.disable')->where('id', '[0-9]+');
+        Route::post('/{id}/2fa/regenerate-backup-codes', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'regenerateBackupCodes'])->name('2fa.regenerate-backup-codes')->where('id', '[0-9]+');
     });
 
     // 2.관리자 사용자 로그 관리
@@ -257,6 +285,8 @@ Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
         Route::post('/bulk-delete', [\Jiny\Admin\Http\Controllers\AdminPermissionLogController::class, 'bulkDelete'])->name('bulk-delete');
         Route::get('/download-csv', [\Jiny\Admin\Http\Controllers\AdminPermissionLogController::class, 'downloadCsv'])->name('downloadCsv');
     });
+
+
 
 
 

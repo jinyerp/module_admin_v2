@@ -239,6 +239,14 @@
                     "url": "/admin/admin/audit-logs",
                     "active": false,
                     "permission": "admin.admin.audit-logs"
+                },
+                {
+                    "type": "menu",
+                    "id": "admin-2fa-logs",
+                    "label": "2FA 로그",
+                    "url": "/admin/logs/2fa",
+                    "active": false,
+                    "permission": "admin.logs.2fa"
                 }
             ]
         },

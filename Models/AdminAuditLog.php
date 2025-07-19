@@ -34,6 +34,51 @@ class AdminAuditLog extends Model
         'updated_at' => 'datetime',
     ];
 
+    // 액션 상수
+    const ACTION_CREATE = 'create';
+    const ACTION_UPDATE = 'update';
+    const ACTION_DELETE = 'delete';
+    const ACTION_READ = 'read';
+    const ACTION_LOGIN = 'login';
+    const ACTION_LOGOUT = 'logout';
+
+    /**
+     * 감사 로그 생성 (정적 메서드)
+     */
+    public static function createAuditLog(
+        int $adminId,
+        string $action,
+        ?string $tableName = null,
+        ?int $recordId = null,
+        ?array $oldValues = null,
+        ?array $newValues = null,
+        ?string $ipAddress = null,
+        ?string $userAgent = null,
+        ?string $description = null,
+        string $severity = 'medium',
+        ?array $metadata = null,
+        ?int $affectedCount = 1
+    ): self {
+        return self::create([
+            'admin_id' => $adminId,
+            'action' => $action,
+            'table_name' => $tableName,
+            'record_id' => $recordId,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'ip_address' => $ipAddress ?? request()->ip(),
+            'user_agent' => $userAgent ?? request()->userAgent(),
+            'description' => $description,
+            'severity' => $severity,
+            'affected_count' => $affectedCount,
+            'metadata' => $metadata ?? [
+                'route' => request()->route()->getName(),
+                'method' => request()->method(),
+                'url' => request()->url(),
+            ]
+        ]);
+    }
+
     /**
      * 관리자 관계
      */

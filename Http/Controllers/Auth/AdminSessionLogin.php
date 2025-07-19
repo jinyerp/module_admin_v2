@@ -95,6 +95,25 @@ class AdminSessionLogin extends Controller
             );
 
             $this->log($admin->id, $ip, $ua, $logStatus, $logMsg);
+            
+            // 2FA가 활성화된 경우 challenge 페이지로 리다이렉트
+            if ($admin->has2FAEnabled()) {
+                return redirect()->route('admin.2fa.challenge');
+            }
+            
+            // 2FA 설정이 필요한 경우 관리자별 2FA 설정 페이지로 리다이렉트
+            if ($admin->needs2FASetup()) {
+                $message = '보안을 위해 2FA 설정이 필요합니다.';
+                
+                // 최초 super 관리자인 경우 특별한 안내
+                if ($admin->type === 'super' && $admin->login_count <= 1) {
+                    $message = '최초 super 관리자 계정입니다. 보안을 위해 2FA 설정을 완료해주세요.';
+                }
+                
+                return redirect()->route('admin.admin.users.2fa.setup', $admin->id)
+                    ->with('warning', $message);
+            }
+            
             return redirect()->intended(route('admin.dashboard'))->with('success', '관리자 로그인 성공');
         } else {
             $logMsg = '이메일 또는 비밀번호가 일치하지 않습니다.';
@@ -135,6 +154,17 @@ class AdminSessionLogin extends Controller
             }
 
             $this->log($admin->id, $ip, $ua, $logStatus, $logMsg);
+            
+            // 2FA가 활성화된 경우 challenge 페이지로 리다이렉트
+            if ($admin->has2FAEnabled()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '2FA 인증이 필요합니다.',
+                    'redirect' => route('admin.2fa.challenge'),
+                    'user' => $admin
+                ]);
+            }
+            
             return response()->json([
                 'success' => true,
                 'message' => '관리자 로그인 성공',
@@ -167,6 +197,10 @@ class AdminSessionLogin extends Controller
             // admin_sessions 테이블에서 세션 정보 삭제
             $sessionId = $request->session()->getId();
             \DB::table('admin_sessions')->where('session_id', $sessionId)->delete();
+            
+            // 2FA 관련 세션 정리
+            $request->session()->forget(['2fa_verified', '2fa_setup_secret', '2fa_setup_backup_codes']);
+            
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }

@@ -100,6 +100,77 @@
                     </div>
                 </div>
             </x-form-section>
+
+            <!-- 2FA 설정 섹션 -->
+            <x-form-section
+                title="2FA 설정"
+                description="2차 인증 설정 상태를 확인하고 관리합니다.">
+                <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                    <div class="sm:col-span-3">
+                        <label class="block text-sm/6 font-medium text-gray-900">2FA 상태</label>
+                        <div class="mt-2 relative">
+                            <div class="flex items-center space-x-2">
+                                <div class="block flex-1 rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200">
+                                    @if($user->has2FAEnabled())
+                                        <span class="text-green-600 font-medium">활성화</span>
+                                    @elseif($user->needs2FASetup())
+                                        <span class="text-red-600 font-medium">필수 설정</span>
+                                    @else
+                                        <span class="text-gray-600">비활성화</span>
+                                    @endif
+                                </div>
+                                <div class="flex-shrink-0">
+                                    @if($user->needs2FASetup())
+                                        <x-ui::link-primary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
+                                            설정하기
+                                        </x-ui::link-primary>
+                                    @elseif($user->has2FAEnabled())
+                                        <x-ui::link-info href="{{ route('admin.admin.users.2fa.manage', $user->id) }}" class="whitespace-nowrap">
+                                            관리
+                                        </x-ui::link-info>
+                                    @else
+                                        <x-ui::link-secondary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
+                                            설정
+                                        </x-ui::link-secondary>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-sm/6 font-medium text-gray-900">설정 완료일</label>
+                        <div class="mt-2 relative">
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200 {{ empty($user->google_2fa_verified_at) ? 'text-gray-400' : 'text-gray-900' }}">
+                                {{ $user->google_2fa_verified_at ? $user->google_2fa_verified_at->format('Y-m-d H:i:s') : '-' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-sm/6 font-medium text-gray-900">백업 코드</label>
+                        <div class="mt-2 relative">
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200">
+                                @if($user->hasBackupCodes())
+                                    <span class="text-green-600">{{ count($user->google_2fa_backup_codes) }}개 남음</span>
+                                @else
+                                    <span class="text-gray-400">없음</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-sm/6 font-medium text-gray-900">2FA 강제 설정</label>
+                        <div class="mt-2 relative">
+                            <div class="block w-full rounded-md bg-gray-100 px-3 py-1.5 text-base border border-gray-200">
+                                @if($user->is2FARequired())
+                                    <span class="text-red-600 font-medium">필수</span>
+                                @else
+                                    <span class="text-gray-600">선택</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </x-form-section>
         </div>
         <div class="mt-6 flex items-center justify-end gap-x-6">
             <x-ui::link-light href="{{ route($route.'index') }}">목록으로</x-ui::link-light>
