@@ -12,12 +12,12 @@
                 <p class="mt-2 text-base text-gray-700">관리자 로그인/로그아웃 등 수동 로그를 기록합니다.</p>
             </div>
             <div class="mt-4 sm:mt-0">
-                <x-ui::link-light href="{{ route('admin.admin.user-logs.index') }}">
+                <x-ui::button-light href="{{ route('admin.admin.user-logs.index') }}">
                     <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     로그 목록
-                </x-ui::link-light>
+                </x-ui::button-light>
             </div>
         </div>
     </div>
@@ -28,7 +28,7 @@
     <form action="{{ route('admin.user-logs.store') }}" method="POST" class="mt-6" id="create-form">
         @csrf
         <div class="space-y-12">
-            <x-form-section
+            <x-ui::form-section
                 title="로그 정보"
                 description="로그 기록에 필요한 정보를 입력하세요.">
                 <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
@@ -116,11 +116,11 @@
                         </div>
                     </div>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
         </div>
         <!-- 제어 버튼 -->
         <div class="mt-6 flex items-center justify-end gap-x-6">
-            <x-ui::link-light href="{{ route('admin.user-logs.index') }}">취소</x-ui::link-light>
+            <x-ui::button-light href="{{ route('admin.user-logs.index') }}">취소</x-ui::button-light>
             <x-ui::button-primary type="submit" id="submitBtn">
                 <span class="inline-flex items-center">
                     <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white hidden" id="loadingIcon" fill="none" viewBox="0 0 24 24">

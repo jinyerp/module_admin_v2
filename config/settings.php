@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'prefix' => 'admin',
     'auth' => [
         'login' => [
             'max_attempts' => 5,

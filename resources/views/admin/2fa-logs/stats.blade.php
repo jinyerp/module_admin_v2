@@ -24,7 +24,7 @@
         
         <div class="mt-6 space-y-12">
             <!-- 일별 통계 -->
-            <x-form-section
+            <x-ui::form-section
                 title="일별 통계 (최근 30일)"
                 description="최근 30일간의 일별 2FA 로그 통계입니다.">
                 <div class="overflow-x-auto">
@@ -69,10 +69,10 @@
                         </tbody>
                     </table>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
 
             <!-- 액션별 통계 -->
-            <x-form-section
+            <x-ui::form-section
                 title="액션별 통계"
                 description="2FA 액션별 로그 통계입니다.">
                 <div class="overflow-x-auto">
@@ -114,10 +114,10 @@
                         </tbody>
                     </table>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
 
             <!-- 관리자별 통계 -->
-            <x-form-section
+            <x-ui::form-section
                 title="관리자별 통계 (상위 10명)"
                 description="2FA 로그가 가장 많은 관리자 상위 10명입니다.">
                 <div class="overflow-x-auto">
@@ -150,10 +150,10 @@
                         </tbody>
                     </table>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
 
             <!-- IP별 통계 -->
-            <x-form-section
+            <x-ui::form-section
                 title="IP별 통계 (상위 10개)"
                 description="2FA 로그가 가장 많은 IP 주소 상위 10개입니다.">
                 <div class="overflow-x-auto">
@@ -182,7 +182,7 @@
                         </tbody>
                     </table>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
         </div>
         <div class="mt-6 flex items-center justify-end gap-x-6">
             <x-ui::link-light href="{{ route('admin.logs.2fa.index') }}">목록으로</x-ui::link-light>

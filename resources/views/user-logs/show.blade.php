@@ -11,6 +11,6 @@
         <tr><th>메시지</th><td>{{ $userLog->message }}</td></tr>
         <tr><th>생성일시</th><td>{{ $userLog->created_at }}</td></tr>
     </table>
-    <a href="{{ route($route.'edit', $userLog->id) }}" class="btn btn-primary">수정</a>
-    <a href="{{ route($route.'index') }}" class="btn btn-secondary">목록</a>
+    <x-ui::button-primary href="{{ route($route.'edit', $userLog->id) }}">수정</x-ui::button-primary>
+    <x-ui::button-light href="{{ route($route.'index') }}">목록</x-ui::button-light>
 @endsection 

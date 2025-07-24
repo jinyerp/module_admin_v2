@@ -6,7 +6,7 @@
 <div class="relative dropdown-container">
     <input type="checkbox" id="{{ $id }}" class="dropdown-checkbox hidden">
     <label for="{{ $id }}"
-        class="dropdown-toggle group flex w-full gap-x-3 rounded-md p-2 text-sm/6 font-semibold {{ $active ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }} cursor-pointer">
+        class="dropdown-toggle group flex w-full gap-x-3 rounded-md p-2 text-base font-semibold {{ $active ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }} cursor-pointer">
         {{ $trigger }}
         <span class="ml-auto transition-transform duration-300 text-gray-400 dropdown-chevron">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

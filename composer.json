@@ -21,7 +21,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Jiny\\Admin\\": "src/"
+            "Jiny\\Admin\\": "/"
         },
         "files" : [
             "Helpers/Helper.php"
@@ -40,6 +40,9 @@
         }
     },
     "scripts": {
-        
+        "migrate-seed": [
+            "php artisan migrate",
+            "php artisan db:seed"
+        ]
     }
 }

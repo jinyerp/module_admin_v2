@@ -18,12 +18,12 @@
             </p>
         </div>
         <div class="mt-4 sm:mt-0 flex gap-2">
-            <x-ui::link-primary href="{{ route($route . 'create') }}">
+            <x-ui::button-primary href="{{ route($route . 'create') }}">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 로그추가
-            </x-ui::link-primary>
+            </x-ui::button-primary>
         </div>
     </div>
 </div>

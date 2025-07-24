@@ -113,6 +113,11 @@ async function confirmDeleteAjax() {
                 'Content-Type': 'application/json'
             }
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
         if (result.success) {
             //alert(result.message || '성공적으로 삭제되었습니다.');
@@ -123,6 +128,7 @@ async function confirmDeleteAjax() {
             alert(result.message || '삭제 중 오류가 발생했습니다.');
         }
     } catch (error) {
+        console.error('Delete error:', error);
         alert('네트워크 오류가 발생했습니다.');
     }
     deleteBtn.textContent = originalText;

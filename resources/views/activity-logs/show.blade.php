@@ -24,7 +24,7 @@
         @includeIf('activity-logs.message')
         @includeIf('activity-logs.errors')
         <div class="mt-6 space-y-12">
-            <x-form-section title="기본 정보" description="로그의 주요 정보를 확인하세요.">
+            <x-ui::form-section title="기본 정보" description="로그의 주요 정보를 확인하세요.">
                 <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
                     <div class="sm:col-span-3">
                         <label class="block text-sm/6 font-medium text-gray-900">관리자</label>
@@ -69,8 +69,8 @@
                         </div>
                     </div>
                 </div>
-            </x-form-section>
-            <x-form-section title="변경 전/후 값" description="old/new values 필드가 있을 경우 표시합니다.">
+            </x-ui::form-section>
+            <x-ui::form-section title="변경 전/후 값" description="old/new values 필드가 있을 경우 표시합니다.">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-900">이전 값(old_values)</label>
@@ -81,7 +81,7 @@
                         <pre class="bg-gray-100 rounded p-2 text-xs text-gray-700">{{ json_encode($activityLog->new_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                     </div>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
         </div>
         <div class="mt-6 flex items-center justify-end gap-x-6">
             <x-ui::link-light href="{{ route($route.'index') }}">목록으로</x-ui::link-light>

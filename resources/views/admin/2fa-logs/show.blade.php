@@ -24,7 +24,7 @@
 
 @section('show')
     <div class="mt-6 space-y-12">
-        <x-form-section
+        <x-ui::form-section
             title="로그 정보"
             description="2FA 인증 로그의 상세 정보입니다.">
             <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
@@ -65,9 +65,9 @@
 
 
             </div>
-        </x-form-section>
+        </x-ui::form-section>
 
-        <x-form-section
+        <x-ui::form-section
             title="액션 정보"
             description="2FA 인증 로그의 액션 정보입니다.">
             <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
@@ -116,22 +116,22 @@
                     </div>
                 </div>
             </div>
-        </x-form-section>
+        </x-ui::form-section>
 
 
-        <x-form-section
+        <x-ui::form-section
             title="사용자 에이전트"
             description="2FA 인증 요청시 사용된 브라우저 정보입니다.">
             <div class="">
                 {{ $item->user_agent ?: '-' }}
             </div>
-        </x-form-section>
+        </x-ui::form-section>
 
 
 
 
         @if($item->metadata)
-        <x-form-section class="mt-6">
+        <x-ui::form-section class="mt-6">
             <x-slot name="title">메타데이터</x-slot>
             <x-slot name="description">2FA 인증 관련 메타데이터를 확인할 수 있습니다.</x-slot>
 
@@ -142,7 +142,7 @@
                     </div>
                 </div>
             </div>
-        </x-form-section>
+        </x-ui::form-section>
         @endif
 
     </div>

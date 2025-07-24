@@ -32,7 +32,7 @@
         </div>
     @endif
     <div class="mt-6 space-y-8">
-        <x-form-section title="관리 대상" description="2FA를 관리할 관리자 정보입니다.">
+        <x-ui::form-section title="관리 대상" description="2FA를 관리할 관리자 정보입니다.">
             <div class="flex items-center space-x-3">
                 <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                     <span class="text-gray-600 font-medium">{{ substr($user->name, 0, 1) }}</span>
@@ -42,8 +42,8 @@
                     <p class="text-sm text-gray-500">{{ $user->email }}</p>
                 </div>
             </div>
-        </x-form-section>
-        <x-form-section title="현재 상태" description="2FA 활성화 여부 및 설정 완료일">
+        </x-ui::form-section>
+        <x-ui::form-section title="현재 상태" description="2FA 활성화 여부 및 설정 완료일">
             <div class="flex items-center mb-2">
                 <svg class="h-5 w-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -53,19 +53,19 @@
             <p class="text-sm text-green-600">
                 설정 완료일: {{ $user->google_2fa_verified_at ? $user->google_2fa_verified_at->format('Y-m-d H:i:s') : '알 수 없음' }}
             </p>
-        </x-form-section>
-        <x-form-section title="백업 코드" description="앱 분실 시 사용할 백업 코드입니다. 안전한 곳에 보관하세요.">
+        </x-ui::form-section>
+        <x-ui::form-section title="백업 코드" description="앱 분실 시 사용할 백업 코드입니다. 안전한 곳에 보관하세요.">
             <div class="flex items-center mb-3">
                 <span class="text-sm text-yellow-800">남은 백업 코드: <span class="font-medium">{{ $user->google_2fa_backup_codes ? count($user->google_2fa_backup_codes) : 0 }}개</span></span>
                 <button onclick="regenerateBackupCodes()" class="ml-4 px-3 py-1 border border-transparent rounded-md text-sm font-medium text-yellow-800 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">백업 코드 재생성</button>
             </div>
-        </x-form-section>
-        <x-form-section title="2FA 비활성화" description="2FA를 비활성화하면 보안이 약화됩니다.">
+        </x-ui::form-section>
+        <x-ui::form-section title="2FA 비활성화" description="2FA를 비활성화하면 보안이 약화됩니다.">
             <div class="flex flex-col items-start">
                 <p class="text-sm text-red-800 mb-3">주의: 2FA를 비활성화하면 보안이 약화됩니다.</p>
                 <button onclick="confirmDisable2FA()" class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">2FA 비활성화</button>
             </div>
-        </x-form-section>
+        </x-ui::form-section>
     </div>
 </div>
 

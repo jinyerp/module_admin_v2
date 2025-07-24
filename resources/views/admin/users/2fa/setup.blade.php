@@ -32,7 +32,7 @@
         </div>
     @endif
     <div class="mt-6 space-y-8">
-        <x-form-section title="설정 대상 관리자" description="2FA를 설정할 관리자 정보입니다.">
+        <x-ui::form-section title="설정 대상 관리자" description="2FA를 설정할 관리자 정보입니다.">
             <div class="flex items-center space-x-3">
                 <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                     <span class="text-gray-600 font-medium">{{ substr($user->name, 0, 1) }}</span>
@@ -42,8 +42,8 @@
                     <p class="text-sm text-gray-500">{{ $user->email }}</p>
                 </div>
             </div>
-        </x-form-section>
-        <x-form-section title="QR 코드 스캔" description="Google Authenticator 앱에서 QR 코드를 스캔하세요">
+        </x-ui::form-section>
+        <x-ui::form-section title="QR 코드 스캔" description="Google Authenticator 앱에서 QR 코드를 스캔하세요">
             <div class="flex justify-start">
                 <div class="inline-block p-4 bg-white border-2 border-gray-200 rounded-lg">
                     <div id="qrcode" class="w-48 h-48 flex items-center justify-center">
@@ -51,15 +51,15 @@
                     </div>
                 </div>
             </div>
-        </x-form-section>
-        <x-form-section title="수동 입력 (선택사항)" description="QR 코드가 스캔되지 않는 경우 수동으로 시크릿 키를 입력하세요">
+        </x-ui::form-section>
+        <x-ui::form-section title="수동 입력 (선택사항)" description="QR 코드가 스캔되지 않는 경우 수동으로 시크릿 키를 입력하세요">
             <div class="flex items-center space-x-2">
                 <span class="text-sm font-medium text-gray-700">시크릿 키:</span>
                 <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">{{ $secret }}</code>
                 <button onclick="copySecret()" class="text-blue-600 hover:text-blue-800 text-sm">복사</button>
             </div>
-        </x-form-section>
-        <x-form-section title="백업 코드" description="앱 분실 시 사용할 백업 코드입니다. 안전한 곳에 보관하세요">
+        </x-ui::form-section>
+        <x-ui::form-section title="백업 코드" description="앱 분실 시 사용할 백업 코드입니다. 안전한 곳에 보관하세요">
             <div class="grid grid-cols-2 gap-2">
                 @foreach($backupCodes as $code)
                     <code class="bg-white px-2 py-1 rounded text-sm font-mono border">{{ $code }}</code>
@@ -68,8 +68,8 @@
             <div class="mt-3">
                 <button onclick="copyBackupCodes()" class="text-yellow-800 hover:text-yellow-900 text-sm">백업 코드 복사</button>
             </div>
-        </x-form-section>
-        <x-form-section title="인증 코드 입력" description="Google Authenticator 앱에서 생성된 6자리 코드를 입력하세요">
+        </x-ui::form-section>
+        <x-ui::form-section title="인증 코드 입력" description="Google Authenticator 앱에서 생성된 6자리 코드를 입력하세요">
             <form action="{{ route('admin.admin.users.2fa.enable', $user->id) }}" method="POST">
                 @csrf
                 <input type="hidden" name="secret" value="{{ $secret }}">
@@ -90,7 +90,7 @@
                     <button type="submit" class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">설정 완료</button>
                 </div>
             </form>
-        </x-form-section>
+        </x-ui::form-section>
     </div>
     <div class="mt-6 bg-blue-50 rounded-lg p-4">
         <h4 class="text-sm font-medium text-blue-900 mb-2">주의사항</h4>

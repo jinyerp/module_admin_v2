@@ -12,19 +12,19 @@
                     <p class="mt-2 text-base text-gray-700">시스템에 등록된 관리자 회원의 상세 정보를 확인합니다.</p>
                 </div>
                 <div class="mt-4 sm:mt-0">
-                    <x-ui::link-light href="{{ route($route.'index') }}">
+                    <x-ui::button-light href="{{ route($route.'index') }}">
                         <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         회원 목록
-                    </x-ui::link-light>
+                    </x-ui::button-light>
                 </div>
             </div>
         </div>
         @includeIf('jiny-admin::users.message')
         @includeIf('jiny-admin::users.errors')
         <div class="mt-6 space-y-12">
-            <x-form-section
+            <x-ui::form-section
                 title="기본 정보"
                 description="관리자 회원의 상세 정보입니다.">
                 <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
@@ -99,10 +99,10 @@
                         </div>
                     </div>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
 
             <!-- 2FA 설정 섹션 -->
-            <x-form-section
+            <x-ui::form-section
                 title="2FA 설정"
                 description="2차 인증 설정 상태를 확인하고 관리합니다.">
                 <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
@@ -121,17 +121,17 @@
                                 </div>
                                 <div class="flex-shrink-0">
                                     @if($user->needs2FASetup())
-                                        <x-ui::link-primary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
+                                        <x-ui::button-primary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
                                             설정하기
-                                        </x-ui::link-primary>
+                                        </x-ui::button-primary>
                                     @elseif($user->has2FAEnabled())
-                                        <x-ui::link-info href="{{ route('admin.admin.users.2fa.manage', $user->id) }}" class="whitespace-nowrap">
+                                        <x-ui::button-info href="{{ route('admin.admin.users.2fa.manage', $user->id) }}" class="whitespace-nowrap">
                                             관리
-                                        </x-ui::link-info>
+                                        </x-ui::button-info>
                                     @else
-                                        <x-ui::link-secondary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
+                                        <x-ui::button-secondary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
                                             설정
-                                        </x-ui::link-secondary>
+                                        </x-ui::button-secondary>
                                     @endif
                                 </div>
                             </div>
@@ -170,10 +170,10 @@
                         </div>
                     </div>
                 </div>
-            </x-form-section>
+            </x-ui::form-section>
         </div>
         <div class="mt-6 flex items-center justify-end gap-x-6">
-            <x-ui::link-light href="{{ route($route.'index') }}">목록으로</x-ui::link-light>
+            <x-ui::button-light href="{{ route($route.'index') }}">목록으로</x-ui::button-light>
             <x-ui::button-primary onclick="setShowEditFlagAndGoEdit()">수정</x-ui::button-primary>
         </div>
     </div>

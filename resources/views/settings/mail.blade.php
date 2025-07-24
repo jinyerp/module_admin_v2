@@ -27,7 +27,7 @@
     <form id="mail-setting-form" class="mt-6">
         @csrf
         @method('PUT')
-        <x-form-section title="메일 기본 설정" description="메일 드라이버와 암호화 방식을 선택하세요.">
+        <x-ui::form-section title="메일 기본 설정" description="메일 드라이버와 암호화 방식을 선택하세요.">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8">
                 <!-- MAIL_MAILER 커스텀 리스트박스 -->
                 <div>
@@ -130,9 +130,9 @@
                     </div>
                 </div>
             </div>
-        </x-form-section>
+        </x-ui::form-section>
 
-        <x-form-section title="SMTP 서버 정보" description="메일 서버 접속 정보를 입력하세요.">
+        <x-ui::form-section title="SMTP 서버 정보" description="메일 서버 접속 정보를 입력하세요.">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8">
                 <div>
                     <label for="MAIL_HOST" class="block text-sm/6 font-medium text-gray-900">SMTP 호스트 <span class="text-red-500 ml-1">*</span></label>
@@ -159,9 +159,9 @@
                     </div>
                 </div>
             </div>
-        </x-form-section>
+        </x-ui::form-section>
 
-        <x-form-section title="발신자 정보" description="메일 발신자 정보를 입력하세요.">
+        <x-ui::form-section title="발신자 정보" description="메일 발신자 정보를 입력하세요.">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8">
                 <div>
                     <label for="MAIL_FROM_ADDRESS" class="block text-sm/6 font-medium text-gray-900">발신 이메일 <span class="text-red-500 ml-1">*</span></label>
@@ -176,7 +176,7 @@
                     </div>
                 </div>
             </div>
-        </x-form-section>
+        </x-ui::form-section>
 
         <div class="mt-8 flex items-center justify-end gap-x-4">
             <x-ui::button-primary type="button" id="saveBtn">

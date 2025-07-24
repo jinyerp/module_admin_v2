@@ -99,7 +99,7 @@ class AdminSessionController extends Controller
             'path' => $request->url(),
             'query' => $request->query(),
         ]);
-        return view('jiny-admin::login_logs.index', [
+        return view('jiny-admin::sessions.index', [
             'route' => $this->route,
             'rows' => $sessions
         ]);

@@ -91,7 +91,7 @@
             "type": "menu",
             "id": "database",
             "label": "데이터베이스",
-            "icon": "database",
+            "icon": "wrench-screwdriver",
             "url": "/admin/database",
             "active": false,
             "permission": "admin.database"
@@ -145,6 +145,21 @@
         
     ],
     "bottom_menu": [
+        
+        {
+            "type": "menu",
+            "id": "country",
+            "label": "국가 관리",
+            "url": "/admin/country",
+            "permission": "admin.country"
+        },
+        {
+            "type": "menu",
+            "id": "language",
+            "label": "언어 관리",
+            "url": "/admin/language",
+            "permission": "admin.language"
+        },
 
         {
             "type": "menu",

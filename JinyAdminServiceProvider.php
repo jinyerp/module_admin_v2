@@ -72,6 +72,8 @@ class JinyAdminServiceProvider extends ServiceProvider
             $this->commands([
                 \Jiny\Admin\Console\Commands\AdminUsers::class,
                 \Jiny\Admin\Console\Commands\AdminUserDelete::class,
+                \Jiny\Admin\Console\Commands\TableDrop::class,
+                \Jiny\Admin\Console\Commands\TableFresh::class,
             ]);
         }
 
@@ -83,6 +85,12 @@ class JinyAdminServiceProvider extends ServiceProvider
             \Jiny\Admin\Http\Middleware\AdminGuest::class);
         $router->aliasMiddleware('admin:2fa', 
             \Jiny\Admin\Http\Middleware\Admin2FA::class);
+
+        // 플래그 이미지 publish 명령 등록
+        // 사용법: php artisan vendor:publish --tag=jiny-admin-flags
+        $this->publishes([
+            __DIR__.'/resources/flags' => public_path('images/flags'),
+        ], 'jiny-admin-flags');
 
     }
 

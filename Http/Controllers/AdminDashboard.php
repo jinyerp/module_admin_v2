@@ -38,7 +38,7 @@ class AdminDashboard extends Controller
         // $stats = $statsService->getStats();
         $stats = [];
         
-        return view('jiny-admin::dashboard', [
+        return view('jiny-admin::dashboard.index', [
             'admin' => $admin,
             'systemInfo' => $systemInfo,
             'settings' => $settings,

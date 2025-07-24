@@ -18,7 +18,7 @@
         
         @if(Route::has($route.'edit'))
         <div class="mt-6 flex items-center justify-end gap-x-6">
-            <x-ui::link-light href="{{ route($route.'index') }}">목록으로</x-ui::link-light>
+            <x-ui::button-light href="{{ route($route.'index') }}">목록으로</x-ui::button-light>
             <x-ui::button-primary onclick="setShowEditFlagAndGoEdit()">수정</x-ui::button-primary>
         </div>
         @endif

@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Auth;
  */
 abstract class AdminResourceController extends Controller
 {
+
+
     protected $filterable = [];
     protected $validFilters = [];
 
@@ -30,13 +32,13 @@ abstract class AdminResourceController extends Controller
         $this->moduleName = $this->getModuleName();
     }
 
-    // 추상 메서드들 - 자식 클래스에서 구현해야 함
-    protected function _index(Request $request) { throw new \Exception('_index method must be implemented'); }
-    protected function _create(Request $request) { throw new \Exception('_create method must be implemented'); }
-    protected function _edit(Request $request, $id) { throw new \Exception('_edit method must be implemented'); }
-    protected function _store(Request $request) { throw new \Exception('_store method must be implemented'); }
-    protected function _update(Request $request, $id) { throw new \Exception('_update method must be implemented'); }
-    protected function _destroy(Request $request) { throw new \Exception('_destroy method must be implemented'); }
+    // // 추상 메서드들 - 자식 클래스에서 구현해야 함
+    // protected function _index(Request $request) { throw new \Exception('_index method must be implemented'); }
+    // protected function _create(Request $request) { throw new \Exception('_create method must be implemented'); }
+    // protected function _edit(Request $request, $id) { throw new \Exception('_edit method must be implemented'); }
+    // protected function _store(Request $request) { throw new \Exception('_store method must be implemented'); }
+    // protected function _update(Request $request, $id) { throw new \Exception('_update method must be implemented'); }
+    // protected function _destroy(Request $request) { throw new \Exception('_destroy method must be implemented'); }
 
 
     public function index(Request $request)
@@ -51,6 +53,22 @@ abstract class AdminResourceController extends Controller
         
         return $view->with('route', $route);
     }
+
+    protected function sort($query, $request)
+    {
+        // 정렬
+        $sortBy = $request->get('sort', 'created_at');
+        $sortOrder = $request->get('direction', 'desc');
+
+        if (in_array($sortBy, $this->sortableColumns)) {
+            $query->orderBy($sortBy, $sortOrder);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        return $query;
+    }
+
 
     public function create(Request $request)
     {

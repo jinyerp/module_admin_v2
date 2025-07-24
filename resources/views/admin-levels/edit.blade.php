@@ -8,12 +8,12 @@
             <p class="mt-2 text-base text-gray-700">시스템에서 지원하는 관리자 등급 정보를 수정합니다. 관리자 등급명, 코드, 권한 등을 변경할 수 있습니다.</p>
         </div>
         <div class="mt-4 sm:mt-0">
-            <x-ui::link-light href="{{ route($route.'index') }}">
+            <x-ui::button-light href="{{ route($route.'index') }}">
                 <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 등급 목록
-            </x-ui::link-light>
+            </x-ui::button-light>
         </div>
     </div>
 </div>
@@ -21,7 +21,7 @@
 
 @section('form')
 
-    <x-form-section title="기본 정보" description="관리자 등급의 기본 정보를 수정하세요.">
+    <x-ui::form-section title="기본 정보" description="관리자 등급의 기본 정보를 수정하세요.">
         <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
             <div class="sm:col-span-3">
                 <label for="name" class="block text-sm font-medium text-gray-700 mb-1">이름 <span class="text-red-500 ml-1" aria-label="필수 항목">*</span></label>
@@ -48,9 +48,9 @@
                 </div>
             </div>
         </div>
-    </x-form-section>
+    </x-ui::form-section>
 
-    <x-form-section class="mt-6" title="권환" description="관리자 등급의 권환을 설정하세요.">
+    <x-ui::form-section class="mt-6" title="권환" description="관리자 등급의 권환을 설정하세요.">
         <fieldset>
             <legend class="sr-only">권한</legend>
             <div class="space-y-5">
@@ -91,6 +91,6 @@
                 </div>
             </div>
         </fieldset>
-    </x-form-section>
+    </x-ui::form-section>
 
 @endsection

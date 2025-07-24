@@ -13,12 +13,12 @@
                     <p class="mt-2 text-base text-gray-700">시스템에서 지원하는 관리자 회원 정보를 수정합니다. 관리자 회원명, 이메일, 타입, 상태 등을 변경할 수 있습니다.</p>
                 </div>
                 <div class="mt-4 sm:mt-0">
-                    <x-ui::link-light href="{{ route($route.'index') }}">
+                    <x-ui::button-light href="{{ route($route.'index') }}">
                         <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         회원 목록
-                    </x-ui::link-light>
+                    </x-ui::button-light>
                 </div>
             </div>
         </div>
@@ -31,7 +31,7 @@
             @csrf
             @method('PUT')
             <div class="space-y-12">
-                <x-form-section
+                <x-ui::form-section
                     title="기본 정보"
                     description="관리자 회원의 기본 정보를 수정하세요.">
                     <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
@@ -188,19 +188,19 @@
                             </div>
                         </div>
                     </div>
-                </x-form-section>
+                </x-ui::form-section>
             </div>
 
             <!-- 제어 버튼 -->
             <div class="mt-6 flex items-center justify-between">
                 <!-- 왼쪽: 삭제 버튼 -->
                 <div>
-                    <x-ui::link-danger href="#" onclick="openDeleteModal()">삭제</x-ui::link-danger>
+                    <x-ui::button-danger href="#" onclick="openDeleteModal()">삭제</x-ui::button-danger>
                 </div>
                 
                 <!-- 오른쪽: 취소와 수정 버튼 -->
                 <div class="flex items-center gap-x-6">
-                    <x-ui::link-light href="{{ route($route.'index') }}">취소</x-ui::link-light>
+                    <x-ui::button-light href="{{ route($route.'index') }}">취소</x-ui::button-light>
                     <x-ui::button-info type="submit" id="submitBtn">
                         <span class="inline-flex items-center">
                             <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white hidden" id="loadingIcon" fill="none" viewBox="0 0 24 24">

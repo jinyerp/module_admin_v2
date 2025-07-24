@@ -82,7 +82,7 @@ class AdminSystemController extends Controller
         // 차트 데이터
         $chartData = $this->getChartData($startDate);
 
-        return view('jiny-admin::admin.systems.index', compact(
+        return view('jiny-admin::systems.index', compact(
             'backupStats',
             'maintenanceStats', 
             'operationStats',

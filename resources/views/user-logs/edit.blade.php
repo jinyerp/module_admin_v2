@@ -26,6 +26,6 @@
             <input type="text" name="message" class="form-control" value="{{ old('message', $userLog->message) }}">
         </div>
         <button type="submit" class="btn btn-primary">수정</button>
-        <a href="{{ route($route.'index') }}" class="btn btn-secondary">목록</a>
+        <x-ui::button-light href="{{ route($route.'index') }}">목록</x-ui::button-light>
     </form>
 @endsection 

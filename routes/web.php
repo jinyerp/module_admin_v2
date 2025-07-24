@@ -1,131 +1,125 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use Jiny\Admin\Http\Controllers\Auth\AdminSessionLogin;
-use Jiny\Admin\Http\Controllers\AdminDashboard;
 
-use Jiny\Admin\Http\Controllers\AdminMigrationController;
+$adminPrefix = config('admin.settings.prefix', 'admin');
+
+/**
+ * 1.관리자 Session 로그인
+ * admin:guest 미들웨어 적용, session 인증 없이 접근 가능
+ */
+use Jiny\Admin\Http\Controllers\Auth\AdminSessionLogin;
+Route::prefix($adminPrefix)->middleware(['web'])->name('admin.')
+    ->group(function () {
+    // 로그인 폼
+    Route::get('/login', [
+        AdminSessionLogin::class,
+        'showLoginForm'])->name('login');
+
+    // 로그인 처리
+    Route::post('/login', [
+        AdminSessionLogin::class,
+        'login'])->name('login.store');
+
+    Route::post('/login/ajax', [
+        AdminSessionLogin::class,
+        'loginAjax'])->name('login.ajax');
+});
+
+// 관리자 인증 라우트 그룹 (web 미들웨어 적용)
+Route::prefix($adminPrefix)->middleware(['web'])->name('admin.')
+    ->group(function () {
+    // 로그아웃 처리
+    Route::get('/logout', [
+        AdminSessionLogin::class,
+        'logout'])->name('logout');
+});
+
+/**
+ * 2. 관리자 최초 설정
+ * 인증 없이 접근 가능
+ */
+use Jiny\Admin\Http\Controllers\AdminSetupController;
+Route::prefix($adminPrefix)->middleware(['web'])->name('admin.')
+    ->group(function () {
+    Route::get('/setup', [
+        AdminSetupController::class, 'index'])->name('setup');
+    Route::post('/setup/migrate', [
+        AdminSetupController::class, 'migrate'])->name('setup.migrate');
+    Route::post('/setup/superadmin', [
+        AdminSetupController::class, 'createSuperAdmin'])->name('setup.superadmin');
+});
+
+use Jiny\Admin\Http\Controllers\AdminDashboard;
 use Jiny\Admin\Http\Controllers\DatabaseController;
 use Jiny\Admin\Http\Controllers\DatabaseMigrationController;
 use Jiny\Admin\Http\Controllers\DatabaseMigrationActionController;
 use Jiny\Admin\Http\Controllers\DatabaseMigrationStatusController;
 use Jiny\Admin\Http\Controllers\MigrationListController;
-
 use Jiny\Admin\Http\Controllers\Logs\AdminUserLogController;
 use Jiny\Admin\Http\Controllers\Logs\AdminActivityLogController;
 use Jiny\Admin\Http\Controllers\Logs\AdminAuditLogController;
-
-use Jiny\Admin\Http\Controllers\AdminSetupController;
+use Jiny\Admin\Http\Controllers\AdminSettingMailController;
 
 /**
- * 관리자 Session 로그인
- * admin:guest 미들웨어 적용, session 인증 없이 접근 가능
+ * 3. 2FA 인증
+ * 2FA 인증 라우트 (로그인 후, 2FA 검증이 필요한 페이지)
  */
-Route::middleware(['web'])->group(function () {
-    // 로그인 폼
-    Route::get('/admin/login', [
-        AdminSessionLogin::class,
-        'showLoginForm'])->name('admin.login');
-
-    // 로그인 처리
-    Route::post('/admin/login', [
-        AdminSessionLogin::class,
-        'login'])->name('admin.login.store');
-
-    Route::post('/admin/login/ajax', [
-        AdminSessionLogin::class,
-        'loginAjax'])->name('admin.login.ajax');
-});
-
-
-// 관리자 인증 라우트 그룹 (web 미들웨어 적용)
-Route::middleware(['web'])->group(function () {
-    // 로그아웃 처리
-    Route::get('/admin/logout', [
-        AdminSessionLogin::class,
-        'logout'])->name('admin.logout');
-});
-
-// 2FA 인증 라우트 (로그인 후, 2FA 검증이 필요한 페이지)
-Route::middleware(['web', 'admin:auth'])->group(function () {
+Route::prefix($adminPrefix)->middleware(['web', 'admin:auth'])->name('admin.')
+    ->group(function () {
     // 2FA 인증 페이지
-    Route::get('/admin/2fa/challenge', [
+    Route::get('/2fa/challenge', [
         \Jiny\Admin\Http\Controllers\Auth\AdminTwoFactorController::class,
-        'challenge'])->name('admin.2fa.challenge');
-    
+        'challenge'])->name('2fa.challenge');
     // 2FA 인증 처리
-    Route::post('/admin/2fa/verify', [
+    Route::post('/2fa/verify', [
         \Jiny\Admin\Http\Controllers\Auth\AdminTwoFactorController::class,
-        'verify'])->name('admin.2fa.verify');
+        'verify'])->name('2fa.verify');
 });
 
-// 관리자 최초 설정 (인증 없이 접근 가능)
-Route::middleware(['web'])->group(function () {
-    Route::get('/admin/setup', [
-        AdminSetupController::class, 'index'])->name('admin.setup');
-    Route::post('/admin/setup/migrate', [
-        AdminSetupController::class, 'migrate'])->name('admin.setup.migrate');
-    Route::post('/admin/setup/superadmin', [
-        AdminSetupController::class, 'createSuperAdmin'])->name('admin.setup.superadmin');
-    
-});
-
-
+/**
+ * 4. 메일 환경설정
+ * 인증 필요
+ */
 // 메일 환경설정 라우트
-use Jiny\Admin\Http\Controllers\AdminSettingMailController;
-Route::middleware(['web', 'admin:auth'])->group(function () {
-    Route::get('/admin/setting/mail', [
+Route::prefix($adminPrefix)->middleware(['web', 'admin:auth'])->name('admin.')
+    ->group(function () {
+    Route::get('/setting/mail', [
         AdminSettingMailController::class, 
-        'index'])->name('admin.setting.mail');
-    Route::put('/admin/setting/mail', [
+        'index'])->name('setting.mail');
+    Route::put('/setting/mail', [
         AdminSettingMailController::class, 
-        'update'])->name('admin.setting.mail.update');
-    Route::post('/admin/setting/mail/test', [
+        'update'])->name('setting.mail.update');
+    Route::post('/setting/mail/test', [
         AdminSettingMailController::class, 
-        'test'])->name('admin.setting.mail.test');
+        'test'])->name('setting.mail.test');
 });
-
 
 // 관리자 대시보드 (인증 필요)
-Route::prefix('admin')->middleware(['web', 'admin:auth'])->name('admin.')->group(function () {
+Route::prefix($adminPrefix)->middleware(['web', 'admin:auth'])->name('admin.')
+    ->group(function () {
     Route::get('/dashboard', [
         AdminDashboard::class,
         'index'])->name('dashboard');
-    
     Route::get('/', [
-            AdminDashboard::class,
-            'index'])->name('dashboard');
-    
-    // // 마이그레이션 관리
-    // Route::prefix('migrations')->name('migrations.')->group(function () {
-    //     Route::get('/', [AdminMigrationController::class, 'index'])->name('index');
-    //     Route::get('/status', [AdminMigrationController::class, 'status'])->name('status');
-    //     Route::post('/run', [AdminMigrationController::class, 'run'])->name('run');
-    //     Route::post('/rollback', [AdminMigrationController::class, 'rollback'])->name('rollback');
-    //     Route::post('/refresh', [AdminMigrationController::class, 'refresh'])->name('refresh');
-    // });
-
+        AdminDashboard::class,
+        'index'])->name('dashboard');
     // 데이터베이스 관리
     Route::prefix('database')->name('database.')->group(function () {
-        // 데이터베이스 대시보드
         Route::get('/', [DatabaseController::class, 'index'])->name('index');
-        
         // 마이그레이션 관리
         Route::prefix('migrations')->name('migrations.')->group(function () {
             Route::get('/', [MigrationListController::class, 'index'])->name('index');
             Route::get('/{id}', [
                 MigrationListController::class, 
                 'show'])->where('id', '[0-9]+')->name('show');
-            
             // 마이그레이션 액션
             Route::post('/run', [DatabaseMigrationActionController::class, 'run'])->name('run');
             Route::post('/rollback', [DatabaseMigrationActionController::class, 'rollback'])->name('rollback');
             Route::post('/refresh', [DatabaseMigrationActionController::class, 'refresh'])->name('refresh');
             Route::post('/reset', [DatabaseMigrationActionController::class, 'reset'])->name('reset');
             Route::post('/run-specific/{migration}', [DatabaseMigrationActionController::class, 'runSpecific'])->name('run-specific');
-            
             // 마이그레이션 상태 확인 (AJAX용)
             Route::get('/status/check', [DatabaseMigrationActionController::class, 'status'])->name('status-check');
-            
             // 마이그레이션 상태
             Route::get('/status', [DatabaseMigrationStatusController::class, 'status'])->name('status');
             Route::get('/status/api', [DatabaseMigrationStatusController::class, 'statusApi'])->name('status-api');
@@ -135,9 +129,8 @@ Route::prefix('admin')->middleware(['web', 'admin:auth'])->name('admin.')->group
     });
 });
 
-
-Route::prefix('admin/monitoring')->middleware(['web', 'admin:auth'])
-    ->name('admin.monitoring.')->group(function () {
+// monitoring, admin, system 등 하위 라우트도 동일하게 prefix($adminPrefix)->middleware([...]) 구조로 통일
+Route::prefix("$adminPrefix/monitoring")->middleware(['web', 'admin:auth'])->name('admin.monitoring.')->group(function () {
 
 });
 
@@ -145,8 +138,7 @@ Route::prefix('admin/monitoring')->middleware(['web', 'admin:auth'])
 /**
  * admin/admin 관리기능
  */
-Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
-    ->name('admin.admin.')->group(function () {
+Route::prefix("$adminPrefix/admin")->middleware(['web', 'admin:auth'])->name('admin.admin.')->group(function () {
 
     // 활동 로그 관리 - activity-log (신규)
     Route::prefix('activity-log')->name('activity-log.')->group(function () {
@@ -293,8 +285,7 @@ Route::prefix('admin/admin')->middleware(['web', 'admin:auth'])
 });
 
 
-Route::prefix('admin/system')->middleware(['web', 'admin:auth'])
-    ->name('admin.system.')->group(function () {
+Route::prefix("$adminPrefix/system")->middleware(['web', 'admin:auth'])->name('admin.system.')->group(function () {
 
     // 시스템 성능 로그 관리
     Route::prefix('performance-logs')->name('performance-logs.')->group(function () {
@@ -310,3 +301,65 @@ Route::prefix('admin/system')->middleware(['web', 'admin:auth'])
     });
 
 });
+
+
+/**
+ * 추가설정정
+ */
+use Jiny\Admin\Http\Controllers\Admin\AdminCountryController;
+use Jiny\Admin\Http\Controllers\Admin\AdminLanguageController;
+Route::prefix($adminPrefix)->middleware(['web', 'admin:auth'])->name('admin.')
+    ->group(function () {
+
+    // 국가 관리
+    Route::prefix("country")->name('country.')
+    ->group(function () {
+        Route::get('/', [
+            AdminCountryController::class, 
+            'index'])->name('index');
+        Route::get('/create', [
+            AdminCountryController::class, 
+            'create'])->name('create');
+        Route::post('/', [
+            AdminCountryController::class, 
+            'store'])->name('store');
+        Route::get('/{id}/edit', [
+            AdminCountryController::class, 
+            'edit'])->name('edit')->where('id', '[0-9]+');
+        Route::put('/{id}', [
+            AdminCountryController::class, 
+            'update'])->name('update');
+        Route::delete('/{id}', [
+            AdminCountryController::class, 
+            'destroy'])->name('destroy');
+        Route::post('/{id}/toggle-enable', [
+            AdminCountryController::class,
+            'toggleEnableAjax'
+        ])->name('toggle-enable')->where('id', '[0-9]+');
+        Route::post('/enable-all', [
+            AdminCountryController::class,
+            'enableAllAjax'
+        ])->name('enable-all');
+        Route::get('/{id}', [
+            AdminCountryController::class,
+            'show'
+        ])->name('show')->where('id', '[0-9]+');
+    });
+
+    // 언어 관리
+    Route::prefix("language")->name('language.')
+    ->group(function () {
+        Route::get('/', [AdminLanguageController::class, 'index'])->name('index');
+        Route::get('/create', [AdminLanguageController::class, 'create'])->name('create');
+        Route::post('/', [AdminLanguageController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [AdminLanguageController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
+        Route::put('/{id}', [AdminLanguageController::class, 'update'])->name('update');
+        Route::delete('/{id}', [AdminLanguageController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/toggle-enable', [AdminLanguageController::class, 'toggleEnableAjax'])->name('toggle-enable')->where('id', '[0-9]+');
+        Route::post('/enable-all', [AdminLanguageController::class, 'enableAllAjax'])->name('enable-all');
+        Route::get('/{id}', [AdminLanguageController::class, 'show'])->name('show')->where('id', '[0-9]+');
+        Route::post('/bulk-delete', [AdminLanguageController::class, 'bulkDelete'])->name('bulk-delete');
+    });
+
+});
+

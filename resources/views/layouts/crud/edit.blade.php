@@ -26,7 +26,7 @@
                     <x-ui::button-danger type="button" onclick="openDeleteModal('{{ $item->id }}', '{{ $item->name ?? '' }}', '{{ $route }}')">삭제</x-ui::button-danger>
                 </div>
                 <div class="flex gap-x-2">
-                    <x-ui::link-light href="{{ route($route . 'index') }}">취소</x-ui::link-light>
+                    <x-ui::button-light href="{{ route($route . 'index') }}">취소</x-ui::button-light>
                     <x-ui::button-info type="submit">수정</x-ui::button-info>
                 </div>
             </div>

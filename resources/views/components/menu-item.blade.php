@@ -6,9 +6,8 @@
 
 @php
     // depth별 스타일 지정
-    $indent = 4 + $depth * 8; // px
     $fontSize = match($depth) {
-        0 => 'text-sm',
+        0 => 'text-base', // 최상위 메뉴는 항상 text-base
         1 => 'text-xs',
         default => 'text-xs',
     };
@@ -17,6 +16,7 @@
         1 => 'font-medium',
         default => 'font-normal',
     };
+    $indent = 4 + $depth * 8; // px
 @endphp
 
 <a href="{{ $item['url'] ?? 'javascript:void(0)' }}"

@@ -22,7 +22,7 @@
         </div>
     </div>
     <div class="mt-6 space-y-12">
-        <x-form-section title="기본 정보" description="마이그레이션의 상세 정보입니다.">
+        <x-ui::form-section title="기본 정보" description="마이그레이션의 상세 정보입니다.">
             <div class="grid w-full grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 md:col-span-2">
                 <div>
                     <label class="block text-sm font-medium text-gray-900">ID</label>
@@ -57,8 +57,8 @@
                     </div>
                 </div>
             </div>
-        </x-form-section>
-        <x-form-section title="테이블 컬럼 정보" description="마이그레이션이 생성한 테이블의 컬럼 구조입니다.">
+        </x-ui::form-section>
+        <x-ui::form-section title="테이블 컬럼 정보" description="마이그레이션이 생성한 테이블의 컬럼 구조입니다.">
             @if($columns)
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200 border">
@@ -85,7 +85,7 @@
             @else
                 <div class="text-sm text-gray-500">마이그레이션명에서 테이블명을 추출할 수 없습니다.</div>
             @endif
-        </x-form-section>
+        </x-ui::form-section>
     </div>
 </div>
 @endsection 

@@ -19,7 +19,7 @@
 
             {{-- 버튼 --}}
             <div class="mt-6 flex items-center justify-end gap-x-6">
-                <x-ui::link-light href="{{ route($route.'index') }}">취소</x-ui::link-light>
+                <x-ui::button-light href="{{ route($route.'index') }}">취소</x-ui::button-light>
                 <x-ui::button-primary type="submit">저장</x-ui::button-primary>
             </div>
         </form>

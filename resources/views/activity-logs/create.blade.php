@@ -26,7 +26,7 @@
         <form action="{{ route($route.'store') }}" method="POST" class="mt-6" id="create-form">
             @csrf
             <div class="space-y-12">
-                <x-form-section title="기본 정보" description="로그의 주요 정보를 입력하세요.">
+                <x-ui::form-section title="기본 정보" description="로그의 주요 정보를 입력하세요.">
                     <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
                         <div class="sm:col-span-3">
                             <label for="admin_user_id" class="block text-sm font-medium text-gray-700 mb-1">관리자 <span class="text-red-500 ml-1">*</span></label>
@@ -64,7 +64,7 @@
                             @error('severity')<div class="mt-1 text-sm text-red-600">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                </x-form-section>
+                </x-ui::form-section>
             </div>
             <div class="mt-6 flex items-center justify-end gap-x-6">
                 <x-ui::link-light href="{{ route($route.'index') }}">취소</x-ui::link-light>

@@ -35,6 +35,10 @@ Route::prefix('admin/admin/levels')->name('admin.admin.levels.')->middleware(['w
 });
 
 
+
+
+
+
 Route::prefix('admin/logs')->middleware(['web', 'admin:auth'])
     ->name('admin.logs.')->group(function () {
 
