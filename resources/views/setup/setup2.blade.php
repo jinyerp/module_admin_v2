@@ -39,6 +39,25 @@
             </div>
         </div>
     @endif
+
+    @if(isset($passwordRules) && is_array($passwordRules) && !$errors->any())
+        <div class="mb-4 text-gray-600 text-sm">
+            <div class="font-semibold mb-1">비밀번호는 다음 조건을 만족해야 합니다:</div>
+            <ul class="list-disc pl-5 space-y-1">
+                <li>최소 {{ $passwordRules['min_length'] ?? 8 }}자 이상</li>
+                @if(!empty($passwordRules['require_special']))
+                    <li>특수문자 포함</li>
+                @endif
+                @if(!empty($passwordRules['require_number']))
+                    <li>숫자 포함</li>
+                @endif
+                @if(!empty($passwordRules['require_uppercase']))
+                    <li>대문자 포함</li>
+                @endif
+            </ul>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('admin.setup.superadmin') }}" class="space-y-6">
         @csrf
         <div>
@@ -53,6 +72,7 @@
                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                    placeholder="admin@example.com" value="{{ old('email') }}" required />
         </div>
+
         <div>
             <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">비밀번호</label>
             <input type="password" id="password" name="password"

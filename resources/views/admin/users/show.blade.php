@@ -1,26 +1,43 @@
-@extends('jiny-admin::layouts.admin.main')
+@extends('jiny-admin::layouts.resource.main')
 
 @section('title', '관리자 회원 정보 상세')
 @section('description', '관리자 회원의 상세 정보를 확인하세요.')
 
+@section('heading')
+<div class="w-full">
+    <div class="sm:flex sm:items-end justify-between">
+        <div class="sm:flex-auto">
+            <h1 class="text-2xl font-semibold text-gray-900">관리자 회원 상세</h1>
+            <p class="mt-2 text-base text-gray-700">시스템에 등록된 관리자 회원의 상세 정보를 확인합니다.</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="{{ route($route.'index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                회원 목록
+            </a>
+            <a href="{{ route($route.'edit', $user->id) }}" class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                수정
+            </a>
+            <button type="button" 
+                    onclick="jiny.crud.deleteItem('{{ route('admin.admin.users.destroy', $user->id) }}')"
+                    class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                삭제
+            </button>
+        </div>
+    </div>
+</div>
+@endsection
+
 @section('content')
     <div class="pt-2 pb-4">
-        <div class="w-full">
-            <div class="sm:flex sm:items-end justify-between">
-                <div class="sm:flex-auto">
-                    <h1 class="text-2xl font-semibold text-gray-900">관리자 회원 상세</h1>
-                    <p class="mt-2 text-base text-gray-700">시스템에 등록된 관리자 회원의 상세 정보를 확인합니다.</p>
-                </div>
-                <div class="mt-4 sm:mt-0">
-                    <x-ui::button-light href="{{ route($route.'index') }}">
-                        <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        회원 목록
-                    </x-ui::button-light>
-                </div>
-            </div>
-        </div>
         @includeIf('jiny-admin::users.message')
         @includeIf('jiny-admin::users.errors')
         <div class="mt-6 space-y-12">
@@ -121,17 +138,17 @@
                                 </div>
                                 <div class="flex-shrink-0">
                                     @if($user->needs2FASetup())
-                                        <x-ui::button-primary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
+                                        <a href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                             설정하기
-                                        </x-ui::button-primary>
+                                        </a>
                                     @elseif($user->has2FAEnabled())
-                                        <x-ui::button-info href="{{ route('admin.admin.users.2fa.manage', $user->id) }}" class="whitespace-nowrap">
+                                        <a href="{{ route('admin.admin.users.2fa.manage', $user->id) }}" class="whitespace-nowrap inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                             관리
-                                        </x-ui::button-info>
+                                        </a>
                                     @else
-                                        <x-ui::button-secondary href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap">
+                                        <a href="{{ route('admin.admin.users.2fa.setup', $user->id) }}" class="whitespace-nowrap inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                             설정
-                                        </x-ui::button-secondary>
+                                        </a>
                                     @endif
                                 </div>
                             </div>
@@ -172,15 +189,5 @@
                 </div>
             </x-ui::form-section>
         </div>
-        <div class="mt-6 flex items-center justify-end gap-x-6">
-            <x-ui::button-light href="{{ route($route.'index') }}">목록으로</x-ui::button-light>
-            <x-ui::button-primary onclick="setShowEditFlagAndGoEdit()">수정</x-ui::button-primary>
-        </div>
     </div>
-@endsection
-<script>
-function setShowEditFlagAndGoEdit() {
-    localStorage.setItem('adminUserFromShow', '1');
-    window.location.href = '{{ route($route.'edit', $user->id) }}';
-}
-</script> 
+@endsection 

@@ -2,6 +2,23 @@
 
 return [
     'prefix' => 'admin',
+    'password' => [
+        'length_min' => 8, // 비밀번호 최소 길이
+        'length_max' => 120, // 비밀번호 최대 길이
+        'uppercase' => 1, // 대문자 포함 여부 (1: 포함, 0: 미포함)
+        'lowercase' => 1, // 소문자 포함 여부 (1: 포함, 0: 미포함)
+        'numbers' => 1, // 숫자 포함 여부 (1: 포함, 0: 미포함)
+        'symbols' => 1, // 특수문자 포함 여부 (1: 포함, 0: 미포함)
+    ],
+    '2fa' => [
+        'enabled' => env('ADMIN_2FA_ENABLED', true),
+        'force_enable' => env('ADMIN_2FA_FORCE_ENABLE', false), // 모든 관리자에게 강제 적용
+        'backup_codes_count' => env('ADMIN_2FA_BACKUP_CODES_COUNT', 8),
+        'qr_code_size' => env('ADMIN_2FA_QR_SIZE', 200),
+        'issuer' => env('ADMIN_2FA_ISSUER', 'Jiny Admin'),
+        'window' => env('ADMIN_2FA_WINDOW', 1), // TOTP 검증 윈도우
+    ],
+
     'auth' => [
         'login' => [
             'max_attempts' => 5,

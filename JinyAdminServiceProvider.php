@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 
+use Jiny\Uikit\App\Services\ModuleManager;
+use Jiny\Uikit\App\Facades\Module;
+use Jiny\Uikit\App\Providers\ModuleServiceProvider;
+
 class JinyAdminServiceProvider extends ServiceProvider
 {
     protected $package = 'jiny-admin';
@@ -32,12 +36,22 @@ class JinyAdminServiceProvider extends ServiceProvider
             __DIR__.'/config/auth.php', 'auth'
         );
 
+        // admin config 파일 등록
+        $this->mergeConfigFrom(
+            __DIR__.'/config/settings.php', 'admin.settings'
+        );
+
+        // 패키지 루트 경로 등록
+        $this->registerPackageRoot();
+
         // 패키지 절대 경로 저장
         // app->instance()는 Laravel 컨테이너에 싱글톤 인스턴스를 바인딩하는 메서드입니다.
         // 첫 번째 매개변수 'jiny-admin'은 컨테이너에서 사용할 키(식별자)입니다.
         // 두 번째 매개변수 __DIR__은 현재 파일의 디렉토리 경로를 바인딩합니다.
         // 이렇게 바인딩된 값은 app('jiny-admin')으로 어디서든 접근할 수 있습니다.
         $this->app->instance('jiny-admin', __DIR__);
+
+        
     }
 
     /**
@@ -92,6 +106,31 @@ class JinyAdminServiceProvider extends ServiceProvider
             __DIR__.'/resources/flags' => public_path('images/flags'),
         ], 'jiny-admin-flags');
 
+    }
+
+    /**
+     * 패키지 루트 경로 등록
+     */
+    protected function registerPackageRoot(): void
+    {
+        try {
+            // 현재 패키지의 루트 경로를 Laravel 컨테이너에 등록
+            // module() 메서드가 없는 경우를 대비하여 직접 컨테이너에 바인딩
+            if (method_exists($this, 'module')) {
+                $this->module()->setDir($this->package, __DIR__);
+                
+                // 디버깅: 등록 확인
+                if ($this->module()->isRegistered($this->package)) {
+                    // 등록 성공
+                }
+            } else {
+                // module() 메서드가 없는 경우 기본적인 패키지 경로 등록
+                $this->app->instance('jiny-admin.path', __DIR__);
+            }
+        } catch (\Exception $e) {
+            // 오류 처리
+            error_log("Package root registration failed: " . $e->getMessage());
+        }
     }
 
 }

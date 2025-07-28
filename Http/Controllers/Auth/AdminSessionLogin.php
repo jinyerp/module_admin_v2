@@ -9,6 +9,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
 use Jiny\Admin\Models\AdminUser;
 use Jiny\Admin\Models\AdminUserLog;
+use Illuminate\Support\Facades\DB;
 
 /**
  * 관리자 세션 로그인 컨트롤러 (admin 가드 전용)
@@ -16,21 +17,15 @@ use Jiny\Admin\Models\AdminUserLog;
 class AdminSessionLogin extends Controller
 {
     /**
-     * 로그인 폼 출력
-     */
-    public function showLoginForm()
-    {
-
-        return view('jiny-admin::auth.index', [
-            'register_enabled' => false
-        ]);
-    }
-
-    /**
      * 로그인 처리 (admin 가드 전용)
      */
     public function login(Request $request)
     {
+        // AJAX 요청인 경우 loginAjax 메서드로 위임
+        if ($request->expectsJson() || $request->header('Accept') === 'application/json') {
+            return $this->loginAjax($request);
+        }
+
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
@@ -55,6 +50,10 @@ class AdminSessionLogin extends Controller
 
             if ($request->hasSession()) {
                 $request->session()->regenerate();
+                
+                // 세션 활동 시간 설정
+                $request->session()->put('admin_last_activity', now()->toDateTimeString());
+                $request->session()->put('admin_user_id', $admin->id);
             }
 
             // 위치 정보 (GeoIP)
@@ -194,6 +193,9 @@ class AdminSessionLogin extends Controller
         Auth::guard('admin')->logout();
 
         if ($request->hasSession()) {
+            // 세션 관련 데이터 정리
+            $request->session()->forget(['admin_last_activity', 'admin_user_id', 'admin_session_expired']);
+            
             // admin_sessions 테이블에서 세션 정보 삭제
             $sessionId = $request->session()->getId();
             \DB::table('admin_sessions')->where('session_id', $sessionId)->delete();

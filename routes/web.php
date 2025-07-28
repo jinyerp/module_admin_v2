@@ -3,16 +3,36 @@ use Illuminate\Support\Facades\Route;
 
 $adminPrefix = config('admin.settings.prefix', 'admin');
 
+
+
+
+/**
+ * 1. 관리자 최초 설정
+ * 인증 없이 접근 가능
+ */
+
+use Jiny\Admin\App\Http\Controllers\Auth\AdminSetupController;
+Route::prefix($adminPrefix)->middleware(['web'])->name('admin.')
+    ->group(function () {
+    Route::get('/setup', [
+        AdminSetupController::class, 'index'])->name('setup');
+    Route::post('/setup/migrate', [
+        AdminSetupController::class, 'migrate'])->name('setup.migrate');
+    Route::post('/setup/superadmin', [
+        AdminSetupController::class, 'createSuperAdmin'])->name('setup.superadmin');
+});
+
 /**
  * 1.관리자 Session 로그인
  * admin:guest 미들웨어 적용, session 인증 없이 접근 가능
  */
 use Jiny\Admin\Http\Controllers\Auth\AdminSessionLogin;
+use Jiny\Admin\App\Http\Controllers\Auth\AdminLoginFormController;
 Route::prefix($adminPrefix)->middleware(['web'])->name('admin.')
     ->group(function () {
     // 로그인 폼
     Route::get('/login', [
-        AdminSessionLogin::class,
+        AdminLoginFormController::class,
         'showLoginForm'])->name('login');
 
     // 로그인 처리
@@ -34,20 +54,7 @@ Route::prefix($adminPrefix)->middleware(['web'])->name('admin.')
         'logout'])->name('logout');
 });
 
-/**
- * 2. 관리자 최초 설정
- * 인증 없이 접근 가능
- */
-use Jiny\Admin\Http\Controllers\AdminSetupController;
-Route::prefix($adminPrefix)->middleware(['web'])->name('admin.')
-    ->group(function () {
-    Route::get('/setup', [
-        AdminSetupController::class, 'index'])->name('setup');
-    Route::post('/setup/migrate', [
-        AdminSetupController::class, 'migrate'])->name('setup.migrate');
-    Route::post('/setup/superadmin', [
-        AdminSetupController::class, 'createSuperAdmin'])->name('setup.superadmin');
-});
+
 
 use Jiny\Admin\Http\Controllers\AdminDashboard;
 use Jiny\Admin\Http\Controllers\DatabaseController;
@@ -174,54 +181,7 @@ Route::prefix("$adminPrefix/admin")->middleware(['web', 'admin:auth'])->name('ad
 
     
 
-    // 1.관리자 회원 목록
-    Route::prefix('users')->name('users.')->group(function () {
-        Route::get('/', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'index'])->name('index'); // 목록 출력
-        Route::get('/create', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'create'])->name('create'); // 생성 폼
-        Route::post('/', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'store'])->name('store'); // 저장
-        Route::get('/{id}', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'show'])->name('show')->where('id', '[0-9]+'); // 상세 조회
-        Route::get('/{id}/edit', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'edit'])->name('edit')->where('id', '[0-9]+'); // 수정폼
-        Route::put('/{id}', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'update'])->name('update')->where('id', '[0-9]+'); // 갱신
-        Route::delete('/{id}', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'destroy'])->name('destroy')->where('id', '[0-9]+'); // 삭제
-        Route::post('/bulk-delete', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'bulkDelete'])->name('bulk-delete'); // 선택 삭제
-        // CSV 다운로드 라우트 추가
-        Route::get('/download-csv', [
-            \Jiny\Admin\Http\Controllers\AdminUserController::class,
-            'downloadCsv'])->name('downloadCsv');
-        
-        // 관리자별 2FA 설정
-        Route::get('/{id}/2fa/setup', [
-            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
-            'setup'])->name('2fa.setup')->where('id', '[0-9]+');
-        Route::post('/{id}/2fa/enable', [
-            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
-            'enable'])->name('2fa.enable')->where('id', '[0-9]+');
-        Route::get('/{id}/2fa/manage', [
-            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
-            'manage'])->name('2fa.manage')->where('id', '[0-9]+');
-        Route::post('/{id}/2fa/disable', [
-            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
-            'disable'])->name('2fa.disable')->where('id', '[0-9]+');
-        Route::post('/{id}/2fa/regenerate-backup-codes', [
-            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
-            'regenerateBackupCodes'])->name('2fa.regenerate-backup-codes')->where('id', '[0-9]+');
-    });
+    
 
     // 2.관리자 사용자 로그 관리
     Route::prefix('user-logs')->name('user-logs.')->group(function () {

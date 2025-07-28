@@ -21,9 +21,9 @@
         <x-ui::form-listbox label="등급" name="filter_type"
             :selected="$filters['type'] ?? ''">
             <x-ui::form-listbox-item :value="''" :selected-value="$filters['type'] ?? ''">전체</x-ui::form-listbox-item>
-            <x-ui::form-listbox-item :value="'super'" :selected-value="$filters['type'] ?? ''">Super</x-ui::form-listbox-item>
-            <x-ui::form-listbox-item :value="'admin'" :selected-value="$filters['type'] ?? ''">Admin</x-ui::form-listbox-item>
-            <x-ui::form-listbox-item :value="'staff'" :selected-value="$filters['type'] ?? ''">Staff</x-ui::form-listbox-item>
+            <x-ui::form-listbox-item :value="'super'" :selected-value="$filters['type'] ?? ''">최고 관리자</x-ui::form-listbox-item>
+            <x-ui::form-listbox-item :value="'admin'" :selected-value="$filters['type'] ?? ''">일반 관리자</x-ui::form-listbox-item>
+            <x-ui::form-listbox-item :value="'staff'" :selected-value="$filters['type'] ?? ''">스태프</x-ui::form-listbox-item>
         </x-ui::form-listbox>
     </div>
 </div>

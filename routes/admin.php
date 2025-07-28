@@ -1,6 +1,67 @@
 <?php
 use Illuminate\Support\Facades\Route;
+
+use Jiny\Admin\App\Http\Controllers\Admin\AdminUserController;
 use Jiny\Admin\Http\Controllers\AdminSessionController;
+Route::prefix('admin/admin')->name('admin.admin.')
+->middleware(['web', 'admin:auth'])
+->group(function () {
+    
+    // 관리자 회원 목록
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [
+            AdminUserController::class,
+            'index'])->name('index'); // 목록 출력
+        Route::get('/create', [
+            AdminUserController::class,
+            'create'])->name('create'); // 생성 폼
+        Route::post('/', [
+            AdminUserController::class,
+            'store'])->name('store'); // 저장
+        Route::get('/{id}', [
+            AdminUserController::class,
+            'show'])->name('show')->where('id', '[0-9]+'); // 상세 조회
+        Route::get('/{id}/edit', [
+            AdminUserController::class,
+            'edit'])->name('edit')->where('id', '[0-9]+'); // 수정폼
+        Route::put('/{id}', [
+            AdminUserController::class,
+            'update'])->name('update')->where('id', '[0-9]+'); // 갱신
+        Route::delete('/{id}', [
+            AdminUserController::class,
+            'destroy'])->name('destroy')->where('id', '[0-9]+'); // 삭제
+        Route::get('/{id}/confirm', [
+            AdminUserController::class,
+            'deleteConfirm'])->name('confirm')->where('id', '[0-9]+'); // 삭제 확인
+        Route::post('/bulk-delete', [
+            AdminUserController::class,
+            'bulkDelete'])->name('bulk-delete'); // 선택 삭제
+        // CSV 다운로드 라우트 추가
+        Route::get('/download-csv', [
+            AdminUserController::class,
+            'downloadCsv'])->name('downloadCsv');
+        
+        // 관리자별 2FA 설정
+        Route::get('/{id}/2fa/setup', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'setup'])->name('2fa.setup')->where('id', '[0-9]+');
+        Route::post('/{id}/2fa/enable', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'enable'])->name('2fa.enable')->where('id', '[0-9]+');
+        Route::get('/{id}/2fa/manage', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'manage'])->name('2fa.manage')->where('id', '[0-9]+');
+        Route::post('/{id}/2fa/disable', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'disable'])->name('2fa.disable')->where('id', '[0-9]+');
+        Route::post('/{id}/2fa/regenerate-backup-codes', [
+            \Jiny\Admin\Http\Controllers\Admin\AdminUser2FAController::class,
+            'regenerateBackupCodes'])->name('2fa.regenerate-backup-codes')->where('id', '[0-9]+');
+    });
+
+});
+
+
 
 
 // 관리자 세션 관리

@@ -20,7 +20,7 @@ class TableDrop extends Command
      *
      * @var string
      */
-    protected $signature = 'table:drop {table : 삭제할 테이블명} {--force : 확인 없이 강제 삭제}';
+    protected $signature = 'table:drop {table : 삭제할 테이블명} {--force : 확인 없이 강제 삭제} ';
 
     /**
      * The console command description.
@@ -33,66 +33,75 @@ class TableDrop extends Command
     {
         $tableName = $this->argument('table');
         $force = $this->option('force');
+        
 
         $this->info('==== 테이블 삭제 ====');
         $this->line("테이블명: {$tableName}");
 
-        // 테이블 존재 여부 확인
-        if (!Schema::hasTable($tableName)) {
-            $this->error("❌ 테이블 '{$tableName}'이 존재하지 않습니다.");
-            return 1;
-        }
-
-        // 테이블 정보 표시
-        $this->displayTableInfo($tableName);
-
-        // 확인 (force 옵션이 없을 때만)
-        if (!$force) {
-            if (!$this->confirm("정말로 테이블 '{$tableName}'을 삭제하시겠습니까?", false)) {
-                $this->info('작업이 취소되었습니다.');
-                return 0;
+        // 와일드카드(*) 지원: team* 등
+        $isWildcard = strpos($tableName, '*') !== false;
+        $tablesToDrop = [];
+        if ($isWildcard) {
+            // 모든 테이블 목록에서 패턴 매칭
+            $allTables = DB::select('SELECT name FROM sqlite_master WHERE type="table"');
+            $tableList = array_map(function($row) { return $row->name; }, $allTables);
+            // *를 임시 토큰으로 치환 후 escape, 마지막에 .*로 복원
+            $wildcardToken = '___WILDCARD___';
+            $patternRaw = str_replace('*', $wildcardToken, $tableName);
+            $patternEscaped = preg_quote($patternRaw, '/');
+            $pattern = '/^' . str_replace($wildcardToken, '.*', $patternEscaped) . '$/i';
+            $tablesToDrop = array_filter($tableList, function($t) use ($pattern) {
+                return preg_match($pattern, $t);
+            });
+            if (empty($tablesToDrop)) {
+                $this->error("❌ 패턴에 매칭되는 테이블이 없습니다: {$tableName}");
+                return 1;
             }
+        } else {
+            $tablesToDrop = [$tableName];
         }
 
-        try {
-            // 1. 테이블 삭제
-            $this->info('데이터베이스에서 테이블을 삭제하는 중...');
-            Schema::dropIfExists($tableName);
-            $this->info('✅ 테이블이 성공적으로 삭제되었습니다.');
-
-            // 2. 관련 마이그레이션 파일 찾기 및 삭제
-            $this->info('관련 마이그레이션 파일을 찾는 중...');
-            $migrationFiles = $this->findMigrationFiles($tableName);
-            
-            if (!empty($migrationFiles)) {
-                $this->info('발견된 마이그레이션 파일:');
-                foreach ($migrationFiles as $file) {
-                    $this->line("  - {$file}");
+        foreach ($tablesToDrop as $tbl) {
+            if (!Schema::hasTable($tbl)) {
+                $this->error("❌ 테이블 '{$tbl}'이 존재하지 않습니다.");
+                // 유사 테이블명 추천
+                $allTables = DB::select('SELECT name FROM sqlite_master WHERE type="table"');
+                $tableList = array_map(function($row) { return $row->name; }, $allTables);
+                $similar = array_filter($tableList, function($t) use ($tbl) {
+                    return stripos($t, $tbl) !== false;
+                });
+                if ($similar) {
+                    $this->info('비슷한 테이블명: ' . implode(', ', $similar));
                 }
-
-                if ($force || $this->confirm('이 마이그레이션 파일들도 삭제하시겠습니까?', false)) {
-                    foreach ($migrationFiles as $file) {
-                        if (File::delete($file)) {
-                            $this->info("✅ {$file} 삭제 완료");
-                        } else {
-                            $this->warn("⚠️ {$file} 삭제 실패");
-                        }
-                    }
-                }
-            } else {
-                $this->info('관련된 마이그레이션 파일을 찾을 수 없습니다.');
+                $this->info('migrations 테이블에서 관련 레코드를 삭제하는 중...');
+                $this->cleanMigrationRecords($tbl);
+                $this->info('✅ migrations 레코드 삭제 작업이 완료되었습니다.');
+                continue;
             }
 
-            // 3. 마이그레이션 테이블에서 관련 레코드 삭제
-            $this->cleanupMigrationTable($tableName);
+            $this->displayTableInfo($tbl);
 
-            $this->info('✅ 테이블 삭제 작업이 완료되었습니다.');
-            return 0;
+            // 확인 (force 옵션이 없을 때만)
+            if (!$force) {
+                if (!$this->confirm("정말로 테이블 '{$tbl}'을 삭제하시겠습니까?", false)) {
+                    $this->info('작업이 취소되었습니다.');
+                    continue;
+                }
+            }
 
-        } catch (\Exception $e) {
-            $this->error("❌ 테이블 삭제 중 오류가 발생했습니다: " . $e->getMessage());
-            return 1;
+            try {
+                // 1. 테이블 삭제
+                $this->info("데이터베이스에서 테이블 '{$tbl}'을 삭제하는 중...");
+                Schema::dropIfExists($tbl);
+                $this->info("✅ 테이블 '{$tbl}'이 성공적으로 삭제되었습니다.");
+                $this->info('migrations 테이블에서 관련 레코드를 삭제하는 중...');
+                $this->cleanMigrationRecords($tbl);
+                $this->info('✅ 테이블 삭제 작업이 완료되었습니다.');
+            } catch (\Exception $e) {
+                $this->error("❌ 테이블 삭제 중 오류가 발생했습니다: " . $e->getMessage());
+            }
         }
+        return 0;
     }
 
     /**
@@ -103,31 +112,23 @@ class TableDrop extends Command
         $this->line('------------------------------');
         $this->info('테이블 정보:');
         
-        // 컬럼 정보
-        $columns = DB::select("DESCRIBE {$tableName}");
-        $this->line("  컬럼 수: " . count($columns));
+        // DB 커넥션 드라이버 확인
+        $driver = DB::getDriverName();
+        if ($driver === 'sqlite') {
+            // SQLite: PRAGMA 사용
+            $columns = DB::select("PRAGMA table_info('$tableName')");
+            $this->line("  컬럼 수: " . count($columns));
+        } else {
+            // MySQL 등: DESCRIBE 사용
+            $columns = DB::select("DESCRIBE {$tableName}");
+            $this->line("  컬럼 수: " . count($columns));
+        }
         
         // 레코드 수
         $count = DB::table($tableName)->count();
         $this->line("  레코드 수: " . number_format($count));
         
-        // 테이블 크기 (MySQL의 경우)
-        try {
-            $tableSize = DB::select("
-                SELECT 
-                    ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size_MB'
-                FROM information_schema.tables 
-                WHERE table_schema = DATABASE() 
-                AND table_name = ?
-            ", [$tableName]);
-            
-            if (!empty($tableSize)) {
-                $this->line("  테이블 크기: " . $tableSize[0]->Size_MB . " MB");
-            }
-        } catch (\Exception $e) {
-            // MySQL이 아닌 경우 무시
-        }
-        
+        // (MySQL 전용) 테이블 크기 등은 생략 또는 분기
         $this->line('------------------------------');
     }
 
@@ -167,34 +168,21 @@ class TableDrop extends Command
     }
 
     /**
-     * 마이그레이션 테이블에서 관련 레코드 정리
+     * migrations 테이블에서 테이블명과 관련된 마이그레이션 레코드만 삭제
      */
-    private function cleanupMigrationTable($tableName)
+    private function cleanMigrationRecords($tableName)
     {
-        try {
-            // 마이그레이션 테이블에서 해당 테이블과 관련된 마이그레이션 레코드 찾기
-            $migrations = DB::table('migrations')->get();
-            $relatedMigrations = [];
-
-            foreach ($migrations as $migration) {
-                $migrationFile = database_path('migrations/' . $migration->migration . '.php');
-                if (File::exists($migrationFile)) {
-                    $content = File::get($migrationFile);
-                    if (Str::contains($content, $tableName)) {
-                        $relatedMigrations[] = $migration->migration;
-                    }
-                }
+        $migrations = DB::table('migrations')->get();
+        $deleted = 0;
+        foreach ($migrations as $migration) {
+            if (stripos($migration->migration, $tableName) !== false) {
+                DB::table('migrations')->where('id', $migration->id)->delete();
+                $this->line("  - {$migration->migration} 레코드 삭제 완료");
+                $deleted++;
             }
-
-            if (!empty($relatedMigrations)) {
-                $this->info('마이그레이션 테이블에서 관련 레코드를 삭제하는 중...');
-                foreach ($relatedMigrations as $migration) {
-                    DB::table('migrations')->where('migration', $migration)->delete();
-                    $this->line("  - {$migration} 레코드 삭제 완료");
-                }
-            }
-        } catch (\Exception $e) {
-            $this->warn("⚠️ 마이그레이션 테이블 정리 중 오류: " . $e->getMessage());
+        }
+        if ($deleted === 0) {
+            $this->line('  - 관련된 마이그레이션 레코드가 없습니다.');
         }
     }
 } 

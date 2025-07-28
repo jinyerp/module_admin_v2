@@ -12,12 +12,12 @@
                 <p class="mt-2 text-base text-gray-700">Google Authenticator 앱을 설정해주세요.</p>
             </div>
             <div class="mt-4 sm:mt-0">
-                <x-ui::link-light href="{{ route('admin.admin.users.show', $user->id) }}">
+                <x-ui::button-light href="{{ route('admin.admin.users.show', $user->id) }}">
                     <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     취소
-                </x-ui::link-light>
+                </x-ui::button-light>
             </div>
         </div>
     </div>

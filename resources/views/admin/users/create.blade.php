@@ -31,8 +31,7 @@
         @includeIf('jiny-admin::users.errors')
 
 
-
-        <form action="{{ route($route.'store') }}" method="POST" class="mt-6" id="create-form">
+        <form action="{{ route($route.'store') }}" method="POST" class="mt-6" id="create-form" data-list-url="{{ route($route.'index') }}">
             @csrf
             <div class="space-y-12">
                 <x-ui::form-section
@@ -76,8 +75,69 @@
                                 @if($errors->has('password'))
                                     <div id="password-error" class="mt-1 text-sm text-red-600">{{ $errors->first('password') }}</div>
                                 @endif
+                                
+                                <!-- 비밀번호 규칙 안내 -->
+                                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div class="flex items-start">
+                                        <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-blue-900 mb-2">안전한 비밀번호를 만들어주세요</p>
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-800">
+                                                <div class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span>최소 {{ config('admin.settings.auth.password.min_length', 8) }}자 이상</span>
+                                                </div>
+                                                @if(config('admin.settings.auth.password.require_lowercase', true))
+                                                <div class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span>소문자 (a-z)</span>
+                                                </div>
+                                                @endif
+                                                @if(config('admin.settings.auth.password.require_uppercase', true))
+                                                <div class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span>대문자 (A-Z)</span>
+                                                </div>
+                                                @endif
+                                                @if(config('admin.settings.auth.password.require_numbers', true))
+                                                <div class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span>숫자 (0-9)</span>
+                                                </div>
+                                                @endif
+                                                @if(config('admin.settings.auth.password.require_special_chars', true))
+                                                <div class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span>특수문자 (!@#$%^&*)</span>
+                                                </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+
+                    </div>
+                </x-ui::form-section>
+
+                <x-ui::form-section
+                    title="등급 및 상태"
+                    description="관리자 회원의 등급과 상태를 설정하세요.">
+                    <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
                         <div class="sm:col-span-3">
                             <label id="type-listbox-label" class="block text-sm font-medium text-gray-700 mb-1">등급</label>
                             <div class="relative mt-2">
@@ -158,34 +218,19 @@
                                 </ul>
                             </div>
                         </div>
-                        <div class="sm:col-span-3">
-                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">전화번호</label>
-                            <div class="mt-2 relative">
-                                <input type="text" name="phone" id="phone" value="{{ old('phone') }}"
-                                    class="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm {{ $errors->has('phone') ? 'outline-red-300 focus:outline-red-500' : '' }}"
-                                    aria-describedby="phone-error" placeholder="전화번호" />
-                                @if($errors->has('phone'))
-                                    <div id="phone-error" class="mt-1 text-sm text-red-600">{{ $errors->first('phone') }}</div>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="sm:col-span-3">
-                            <label for="avatar" class="block text-sm font-medium text-gray-700 mb-1">아바타(이미지 URL)</label>
-                            <div class="mt-2 relative">
-                                <input type="text" name="avatar" id="avatar" value="{{ old('avatar') }}"
-                                    class="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm {{ $errors->has('avatar') ? 'outline-red-300 focus:outline-red-500' : '' }}"
-                                    aria-describedby="avatar-error" placeholder="이미지 URL" />
-                                @if($errors->has('avatar'))
-                                    <div id="avatar-error" class="mt-1 text-sm text-red-600">{{ $errors->first('avatar') }}</div>
-                                @endif
-                            </div>
-                        </div>
+                    </div>
+                </x-ui::form-section>
+
+                <x-ui::form-section
+                    title="추가 정보"
+                    description="관리자 회원에 대한 추가 정보를 입력하세요.">
+                    <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
                         <div class="sm:col-span-6">
                             <label for="memo" class="block text-sm font-medium text-gray-700 mb-1">메모</label>
                             <div class="mt-2 relative">
-                                <textarea name="memo" id="memo" rows="3"
+                                <textarea name="memo" id="memo" rows="4"
                                     class="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm {{ $errors->has('memo') ? 'outline-red-300 focus:outline-red-500' : '' }}"
-                                    aria-describedby="memo-error" placeholder="메모">{{ old('memo') }}</textarea>
+                                    aria-describedby="memo-error" placeholder="관리자 회원에 대한 메모를 입력하세요">{{ old('memo') }}</textarea>
                                 @if($errors->has('memo'))
                                     <div id="memo-error" class="mt-1 text-sm text-red-600">{{ $errors->first('memo') }}</div>
                                 @endif
@@ -198,7 +243,7 @@
             <!-- 제어 버튼 -->
             <div class="mt-6 flex items-center justify-end gap-x-6">
                 <x-ui::button-light href="{{ route($route.'index') }}">취소</x-ui::button-light>
-                <x-ui::button-primary type="submit" id="submitBtn">
+                <x-ui::button-primary type="button" id="submitBtn" onclick="jiny.crud.store()">
                     <span class="inline-flex items-center">
                         <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white hidden" id="loadingIcon" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -208,165 +253,7 @@
                     </span>
                 </x-ui::button-primary>
             </div>
+
         </form>
     </div>
-
-    <!-- 백드롭/스피너/에러팝업 -->
-    <div id="form-backdrop" style="display:none; position:fixed; z-index:50; left:0; top:0; width:100vw; height:100vh; background:rgba(55,55,55,0.4);">
-        <div style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);">
-            <div id="form-spinner" style="display:block;">
-                <svg class="animate-spin h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </div>
-            <div id="form-error-popup" style="display:none; min-width:500px; background:white; border-radius:8px; box-shadow:0 2px 16px rgba(0,0,0,0.2); padding:24px; text-align:center;">
-                <div class="sm:flex sm:items-start">
-                    <div class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:size-10">
-                      <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                      </svg>
-                    </div>
-                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                      <h3 class="text-base font-semibold text-gray-900" id="dialog-title">오류 발생</h3>
-                      <div class="mt-2">
-                        <p  id="form-error-message" class="text-sm text-gray-500">
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="hideBackdrop()" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 sm:ml-3 sm:w-auto">닫기</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-    function showBackdrop() {
-        document.getElementById('form-backdrop').style.display = 'block';
-        document.getElementById('form-spinner').style.display = 'block';
-        document.getElementById('form-error-popup').style.display = 'none';
-    }
-    function hideBackdrop() {
-        document.getElementById('form-backdrop').style.display = 'none';
-    }
-    function showError(message) {
-        document.getElementById('form-spinner').style.display = 'none';
-        document.getElementById('form-error-popup').style.display = 'block';
-        document.getElementById('form-error-message').innerHTML = message;
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('create-form');
-        if (!form) return;
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            showBackdrop();
-            const formData = new FormData(form);
-            const url = form.action;
-            const method = form.getAttribute('method').toUpperCase();
-
-            const token = document.querySelector('input[name=_token]').value;
-            // 데이터 전송
-            fetch(url, {
-                method: method,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': token,
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(async response => {
-                if (response.ok) {
-                    window.history.length > 1 ? window.history.back() : window.location.href = "{{ route('admin.admin.users.index') }}";
-                } else {
-                    let msg = '알 수 없는 오류가 발생했습니다.';
-                    try {
-                        const data = await response.json();
-                        if (data.errors) {
-                            msg = Object.values(data.errors).flat().join('<br>');
-                        } else if (data.message) {
-                            msg = data.message;
-                        }
-                    } catch (e) {}
-                    showError(msg);
-                }
-            })
-            .catch(err => {
-                showError('서버와 통신 중 오류가 발생했습니다.');
-            });
-        });
-    });
-
-    // 드롭다운 기능 구현 (filters.blade.php 참고)
-    const dropdowns = [
-        { button: 'type-listbox-button', listbox: 'type-listbox', selectedText: 'type-selected-text', hiddenInput: 'type-hidden-input' },
-        { button: 'status-listbox-button', listbox: 'status-listbox', selectedText: 'status-selected-text', hiddenInput: 'status-hidden-input' }
-    ];
-    dropdowns.forEach(dropdown => {
-        const button = document.getElementById(dropdown.button);
-        const listbox = document.getElementById(dropdown.listbox);
-        const selectedText = document.getElementById(dropdown.selectedText);
-        const hiddenInput = document.getElementById(dropdown.hiddenInput);
-        const options = listbox.querySelectorAll('li[role="option"]');
-        button.addEventListener('click', function() {
-            const isExpanded = button.getAttribute('aria-expanded') === 'true';
-            button.setAttribute('aria-expanded', !isExpanded);
-            if (isExpanded) {
-                listbox.classList.add('hidden');
-            } else {
-                dropdowns.forEach(other => {
-                    if (other.button !== dropdown.button) {
-                        const otherButton = document.getElementById(other.button);
-                        const otherListbox = document.getElementById(other.listbox);
-                        otherButton.setAttribute('aria-expanded', 'false');
-                        otherListbox.classList.add('hidden');
-                    }
-                });
-                listbox.classList.remove('hidden');
-            }
-        });
-        options.forEach(option => {
-            option.addEventListener('click', function() {
-                const value = this.getAttribute('data-value');
-                const text = this.querySelector('span').textContent;
-                selectedText.textContent = text;
-                hiddenInput.value = value;
-                options.forEach(opt => {
-                    const checkmark = opt.querySelector('span:last-child');
-                    if (opt === this) {
-                        checkmark.classList.remove('hidden');
-                    } else {
-                        checkmark.classList.add('hidden');
-                    }
-                });
-                button.setAttribute('aria-expanded', 'false');
-                listbox.classList.add('hidden');
-            });
-        });
-        document.addEventListener('click', function(event) {
-            if (!button.contains(event.target) && !listbox.contains(event.target)) {
-                button.setAttribute('aria-expanded', 'false');
-                listbox.classList.add('hidden');
-            }
-        });
-    });
-    // 기존 값으로 초기화
-    dropdowns.forEach(dropdown => {
-        const hiddenInput = document.getElementById(dropdown.hiddenInput);
-        const selectedText = document.getElementById(dropdown.selectedText);
-        const options = document.getElementById(dropdown.listbox).querySelectorAll('li[role="option"]');
-        if (hiddenInput.value) {
-            options.forEach(option => {
-                if (option.getAttribute('data-value') === hiddenInput.value) {
-                    selectedText.textContent = option.querySelector('span').textContent;
-                    const checkmark = option.querySelector('span:last-child');
-                    checkmark.classList.remove('hidden');
-                }
-            });
-        }
-    });
-    </script>
 @endsection
