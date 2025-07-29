@@ -1,4 +1,4 @@
-@extends('jiny-admin::layouts.admin.main')
+@extends('jiny-admin::layouts.resource.edit')
 
 @section('title', '관리자 회원 정보 수정')
 @section('description', '관리자 회원 정보를 수정하세요.')
@@ -20,7 +20,8 @@
                         회원 목록
                     </x-ui::button-light>
                     <button type="button" 
-                            onclick="jiny.crud.deleteItem('{{ route('admin.admin.users.destroy', $user->id) }}')"
+                            id="delete-btn"
+                            data-delete-route="{{ route('admin.admin.users.destroy', $user->id) }}"
                             class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                         <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -31,11 +32,10 @@
             </div>
         </div>
         
-        @includeIf('jiny-admin::users.message')
-        <!-- 에러 메시지 -->
-        @includeIf('jiny-admin::users.errors')
+        {{-- 통합된 알림 메시지 --}}
+        @includeIf('jiny-admin::users.alerts')
 
-        <form action="{{ route($route.'update', $user->id) }}" method="POST" class="mt-6" id="edit-form">
+        <form action="{{ route($route.'update', $user->id) }}" method="POST" class="mt-6" id="edit-form" data-list-url="{{ route($route.'index') }}">
             @csrf
             @method('PUT')
             <div class="space-y-12">
@@ -134,19 +134,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="sm:col-span-6">
-                            <label for="memo" class="block text-sm font-medium text-gray-700 mb-1">메모</label>
-                            <div class="mt-2 relative">
-                                <textarea name="memo" id="memo" rows="4"
-                                    class="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm {{ $errors->has('memo') ? 'outline-red-300 focus:outline-red-500' : '' }}"
-                                    aria-describedby="memo-error" placeholder="관리자 회원에 대한 메모를 입력하세요">{{ old('memo', $user->memo) }}</textarea>
-                                @if($errors->has('memo'))
-                                    <div id="memo-error" class="mt-1 text-sm text-red-600">{{ $errors->first('memo') }}</div>
-                                @endif
-                            </div>
-                        </div>
                     </div>
                 </x-ui::form-section>
+
+                
 
                 <x-ui::form-section
                     title="등급 및 상태"
@@ -234,19 +225,45 @@
                         </div>
                     </div>
                 </x-ui::form-section>
+
+                <x-ui::form-section
+                    title="메모"
+                    description="관리자 회원에 대한 메모를 입력하세요.">
+                    <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                        <div class="sm:col-span-6">
+                            <label for="memo" class="block text-sm font-medium text-gray-700 mb-1">메모</label>
+                            <div class="mt-2 relative">
+                                <textarea name="memo" id="memo" rows="4"
+                                    class="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm {{ $errors->has('memo') ? 'outline-red-300 focus:outline-red-500' : '' }}"
+                                    aria-describedby="memo-error" placeholder="관리자 회원에 대한 메모를 입력하세요">{{ old('memo', $user->memo) }}</textarea>
+                                @if($errors->has('memo'))
+                                    <div id="memo-error" class="mt-1 text-sm text-red-600">{{ $errors->first('memo') }}</div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </x-ui::form-section>
             </div>
 
             <!-- 제어 버튼 -->
             <div class="mt-6 flex items-center justify-between">
                 <!-- 왼쪽: 삭제 버튼 -->
                 <div>
-                    <x-ui::button-danger href="#" onclick="jiny.crud.deleteItem('{{ route('admin.admin.users.destroy', $user->id) }}')">삭제</x-ui::button-danger>
+                    <button type="button" 
+                            id="delete-btn-bottom"
+                            data-delete-route="{{ route('admin.admin.users.destroy', $user->id) }}"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        삭제
+                    </button>
                 </div>
                 
                 <!-- 오른쪽: 취소와 수정 버튼 -->
                 <div class="flex items-center gap-x-6">
                     <x-ui::button-light href="{{ route($route.'index') }}">취소</x-ui::button-light>
-                    <x-ui::button-info type="button" id="submitBtn" onclick="jiny.crud.update()">
+                    <x-ui::button-info type="button" id="submitBtn">
                         <span class="inline-flex items-center">
                             <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white hidden" id="loadingIcon" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

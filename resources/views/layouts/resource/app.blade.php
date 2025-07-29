@@ -11,19 +11,9 @@
     <!-- Include this script tag or install `@tailwindplus/elements` via npm: -->
 
     <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
-
 </head>
 
-<body>
+@yield('body')
 
-    <x-ui::sidebar-menu theme="dark"
-        menuPath="{{app('jiny-admin').'/resources/menus/admin.json'}}">
-
-    </x-ui::sidebar-menu>
-
-    @yield('layout')
-
-    @stack('scripts')
-</body>
 
 </html>

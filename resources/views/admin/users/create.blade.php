@@ -1,4 +1,4 @@
-@extends('jiny-admin::layouts.admin.main')
+@extends('jiny-admin::layouts.resource.create')
 
 @section('title', '새 관리자 회원 등록')
 @section('description', '새로운 관리자 회원 정보를 입력하고 등록하세요.')
@@ -25,10 +25,8 @@
         </div>
         
 
-        @includeIf('jiny-admin::users.message')
-
-        <!-- 에러 메시지 -->
-        @includeIf('jiny-admin::users.errors')
+        {{-- 통합된 알림 메시지 --}}
+        @includeIf('jiny-admin::users.alerts')
 
 
         <form action="{{ route($route.'store') }}" method="POST" class="mt-6" id="create-form" data-list-url="{{ route($route.'index') }}">
@@ -243,7 +241,7 @@
             <!-- 제어 버튼 -->
             <div class="mt-6 flex items-center justify-end gap-x-6">
                 <x-ui::button-light href="{{ route($route.'index') }}">취소</x-ui::button-light>
-                <x-ui::button-primary type="button" id="submitBtn" onclick="jiny.crud.store()">
+                <x-ui::button-primary type="button" id="submitCreateAjax">
                     <span class="inline-flex items-center">
                         <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white hidden" id="loadingIcon" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
