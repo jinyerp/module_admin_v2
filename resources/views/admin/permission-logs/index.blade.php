@@ -1,372 +1,171 @@
-@extends('admin::layouts.admin')
+@extends('jiny-admin::layouts.resource.table')
 
 @section('title', '권한 로그 관리')
+@section('description', '시스템 권한 로그를 확인하고 관리할 수 있습니다.')
 
-@section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">권한 로그 관리</h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportLogs()">
-                            <i class="fas fa-download"></i> 내보내기
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <!-- 검색 필터 -->
-                    <div class="row mb-3">
-                        <div class="col-md-2">
-                            <input type="text" class="form-control" id="admin_id" placeholder="관리자 ID">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="text" class="form-control" id="permission_name" placeholder="권한명">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="text" class="form-control" id="resource_type" placeholder="리소스 타입">
-                        </div>
-                        <div class="col-md-2">
-                            <select class="form-control" id="action">
-                                <option value="">모든 액션</option>
-                                <option value="grant">부여</option>
-                                <option value="revoke">회수</option>
-                                <option value="check">체크</option>
-                                <option value="deny">거부</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select class="form-control" id="result">
-                                <option value="">모든 결과</option>
-                                <option value="success">성공</option>
-                                <option value="failed">실패</option>
-                                <option value="denied">거부됨</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-primary" onclick="searchLogs()">
-                                <i class="fas fa-search"></i> 검색
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 통계 카드 -->
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <div class="info-box">
-                                <span class="info-box-icon bg-info"><i class="fas fa-list"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">총 활동</span>
-                                    <span class="info-box-number" id="total-actions">0</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-box">
-                                <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">성공</span>
-                                    <span class="info-box-number" id="successful-actions">0</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-box">
-                                <span class="info-box-icon bg-warning"><i class="fas fa-times"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">거부됨</span>
-                                    <span class="info-box-number" id="denied-actions">0</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-box">
-                                <span class="info-box-icon bg-primary"><i class="fas fa-percentage"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">성공률</span>
-                                    <span class="info-box-number" id="success-rate">0%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 로그 테이블 -->
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="logs-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>관리자</th>
-                                    <th>권한명</th>
-                                    <th>리소스 타입</th>
-                                    <th>액션</th>
-                                    <th>결과</th>
-                                    <th>IP 주소</th>
-                                    <th>생성일</th>
-                                    <th>작업</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- 데이터가 여기에 로드됩니다 -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- 페이지네이션 -->
-                    <div class="d-flex justify-content-center" id="pagination">
-                        <!-- 페이지네이션이 여기에 로드됩니다 -->
-                    </div>
-                </div>
+@section('heading')
+    <div class="w-full">
+        <div class="sm:flex sm:items-end justify-between">
+            <div class="sm:flex-auto">
+                <h1 class="text-2xl font-semibold text-gray-900">권한 로그 관리</h1>
+                <p class="mt-2 text-base text-gray-700">시스템 권한 로그를 확인하고 관리할 수 있습니다. 관리자 액션, 리소스 접근, 결과 등을 추적할 수 있습니다.</p>
+            </div>
+            <div class="mt-4 sm:mt-0 flex gap-2">
+                <x-ui::button-primary href="{{ route('admin.admin.permission-logs.stats') }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    통계 보기
+                </x-ui::button-primary>
+                <x-ui::button-light href="{{ route('admin.admin.permission-logs.downloadCsv') }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    CSV 다운로드
+                </x-ui::button-light>
             </div>
         </div>
     </div>
-</div>
-
-<!-- 분석 모달 -->
-<div class="modal fade" id="analysisModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">권한 활동 분석</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>권한별 활동</h6>
-                        <div id="permission-chart"></div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>시간별 트렌드</h6>
-                        <div id="trend-chart"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection
 
-@push('scripts')
-<script>
-let currentPage = 1;
-let searchParams = {};
-
-// 페이지 로드 시 로그 조회
-$(document).ready(function() {
-    loadLogs();
-    loadStats();
-});
-
-// 로그 조회
-function loadLogs(page = 1) {
-    currentPage = page;
-    const params = { ...searchParams, page };
-
-    $.get('{{ route("admin.permission-logs.index") }}', params)
-        .done(function(response) {
-            updateLogsTable(response.data);
-            updatePagination(response);
-        })
-        .fail(function(xhr) {
-            console.error('로그 조회 실패:', xhr);
-            alert('로그 조회에 실패했습니다.');
-        });
-}
-
-// 통계 조회
-function loadStats() {
-    $.get('{{ route("admin.permission-logs.stats") }}', searchParams)
-        .done(function(response) {
-            updateStats(response.data);
-        })
-        .fail(function(xhr) {
-            console.error('통계 조회 실패:', xhr);
-        });
-}
-
-// 검색
-function searchLogs() {
-    searchParams = {
-        admin_id: $('#admin_id').val(),
-        permission_name: $('#permission_name').val(),
-        resource_type: $('#resource_type').val(),
-        action: $('#action').val(),
-        result: $('#result').val(),
-        date_from: $('#date_from').val(),
-        date_to: $('#date_to').val(),
-        ip_address: $('#ip_address').val()
-    };
-
-    loadLogs(1);
-    loadStats();
-}
-
-// 로그 테이블 업데이트
-function updateLogsTable(logs) {
-    const tbody = $('#logs-table tbody');
-    tbody.empty();
-
-    logs.data.forEach(log => {
-        const row = `
-            <tr>
-                <td>${log.id}</td>
-                <td>${log.admin ? log.admin.email : 'N/A'}</td>
-                <td>${log.permission_name}</td>
-                <td>${log.resource_type}</td>
-                <td>
-                    <span class="badge badge-${getActionBadgeClass(log.action)}">
-                        ${getActionText(log.action)}
-                    </span>
-                </td>
-                <td>
-                    <span class="badge badge-${getResultBadgeClass(log.result)}">
-                        ${getResultText(log.result)}
-                    </span>
-                </td>
-                <td>${log.ip_address || 'N/A'}</td>
-                <td>${formatDate(log.created_at)}</td>
-                <td>
-                    <a href="{{ route('admin.permission-logs.show', '') }}/${log.id}"
-                       class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye"></i> 상세
-                    </a>
-                </td>
-            </tr>
-        `;
-        tbody.append(row);
-    });
-}
-
-// 통계 업데이트
-function updateStats(stats) {
-    $('#total-actions').text(stats.total_actions);
-    $('#successful-actions').text(stats.successful_actions);
-    $('#denied-actions').text(stats.denied_actions);
-    $('#success-rate').text(stats.success_rate + '%');
-}
-
-// 페이지네이션 업데이트
-function updatePagination(response) {
-    const pagination = $('#pagination');
-    pagination.empty();
-
-    if (response.last_page > 1) {
-        let paginationHtml = '<ul class="pagination">';
-
-        // 이전 페이지
-        if (response.current_page > 1) {
-            paginationHtml += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadLogs(${response.current_page - 1})">이전</a>
-            </li>`;
+@section('content')
+    {{-- 페이지 진입시 성공 메시지 제거 --}}
+    <script>
+        if (localStorage.getItem('editSuccess') === '1') {
+            localStorage.removeItem('editSuccess');
+            location.reload();
         }
+        // show → edit 경로에서 남아있을 수 있는 플래그 초기화
+        localStorage.removeItem('fromShow');
+    </script>
 
-        // 페이지 번호
-        for (let i = 1; i <= response.last_page; i++) {
-            if (i === response.current_page) {
-                paginationHtml += `<li class="page-item active">
-                    <span class="page-link">${i}</span>
-                </li>`;
-            } else {
-                paginationHtml += `<li class="page-item">
-                    <a class="page-link" href="#" onclick="loadLogs(${i})">${i}</a>
-                </li>`;
-            }
+    @csrf {{-- ajax 통신을 위한 토큰 --}}
+
+    {{-- 필터 컴포넌트 --}}
+    <div class="mt-6 bg-white rounded-lg border border-gray-200 p-4">
+        <div id="filter-container" class="space-y-4">
+
+            @includeIf('jiny-admin::admin.permission-logs.filters')
+
+            <!-- 검색 버튼 -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-gray-200 gap-4">
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
+
+                    <x-ui::button-dark type="button" id="search-btn" class="w-32 sm:w-auto">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        검색
+                    </x-ui::button-dark>
+                    <x-ui::button-light href="{{ request()->url() }}" class="w-32 sm:w-auto">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                        초기화
+                    </x-ui::button-light>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <x-ui::table-stripe>
+        <x-ui::table-thead>
+  
+            <x-ui::table-th sort="id">ID</x-ui::table-th>
+            <x-ui::table-th sort="admin_user_id">관리자</x-ui::table-th>
+            <x-ui::table-th sort="action">액션</x-ui::table-th>
+            <x-ui::table-th sort="resource_type">리소스</x-ui::table-th>
+            <x-ui::table-th sort="result">결과</x-ui::table-th>
+            <x-ui::table-th sort="ip_address">IP 주소</x-ui::table-th>
+            <x-ui::table-th sort="created_at">생성일시</x-ui::table-th>
+            <th class="relative py-3.5 pr-4 pl-3 sm:pr-3 text-center">
+                Actions
+            </th>
+        </x-ui::table-thead>
+
+        <tbody class="bg-white">
+            @foreach ($rows as $log)
+                <x-ui::table-row :item="$log" data-row-id="{{ $log->id }}"
+                    data-even="{{ $loop->even ? '1' : '0' }}">
+
+             
+
+                    <td class="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-3">
+                        {{ $log->id }}
+                    </td>
+
+                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                        <a href="{{ route($route . 'show', $log->id) }}" class="text-gray-500 hover:text-indigo-600">
+                            {{ $log->admin->name ?? 'Unknown' }}
+                        </a>
+                    </td>
+
+                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                   bg-{{ $log->getActionColor() }}-100 text-{{ $log->getActionColor() }}-800">
+                            {{ $log->getActionText() }}
+                        </span>
+                    </td>
+
+                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                        {{ $log->resource_type }}
+                        @if($log->resource_id)
+                            ({{ $log->resource_id }})
+                        @endif
+                    </td>
+
+                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                   bg-{{ $log->getResultColor() }}-100 text-{{ $log->getResultColor() }}-800">
+                            {{ $log->getResultText() }}
+                        </span>
+                    </td>
+
+                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                        {{ $log->ip_address }}
+                    </td>
+
+                    <td class="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                        {{ $log->created_at->format('Y-m-d H:i:s') }}
+                    </td>
+
+                    <td class="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-3">
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{{ route($route.'show', $log->id) }}"
+                                class="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50 transition-colors"
+                                title="상세보기">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <span class="sr-only">View log {{ $log->id }}</span>
+                            </a>
+                        </div>
+                    </td>
+                </x-ui::table-row>
+            @endforeach
+        </tbody>
+    </x-ui::table-stripe>
+
+    {{-- 페이지 진입시 성공 메시지 제거 --}}
+    <script>
+        if (localStorage.getItem('editSuccess') === '1') {
+            localStorage.removeItem('editSuccess');
+            location.reload();
         }
+    </script>
 
-        // 다음 페이지
-        if (response.current_page < response.last_page) {
-            paginationHtml += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadLogs(${response.current_page + 1})">다음</a>
-            </li>`;
-        }
+    {{-- 페이지네이션 --}}
+    @includeIf('jiny-admin::layouts.resource.pagenation')
 
-        paginationHtml += '</ul>';
-        pagination.html(paginationHtml);
-    }
-}
+    {{-- 디버그 모드 --}}
+    @includeIf('jiny-admin::layouts.crud.debug')
 
-// 액션 배지 클래스
-function getActionBadgeClass(action) {
-    switch (action) {
-        case 'grant': return 'success';
-        case 'revoke': return 'danger';
-        case 'check': return 'info';
-        case 'deny': return 'warning';
-        default: return 'secondary';
-    }
-}
-
-// 액션 텍스트
-function getActionText(action) {
-    switch (action) {
-        case 'grant': return '부여';
-        case 'revoke': return '회수';
-        case 'check': return '체크';
-        case 'deny': return '거부';
-        default: return action;
-    }
-}
-
-// 결과 배지 클래스
-function getResultBadgeClass(result) {
-    switch (result) {
-        case 'success': return 'success';
-        case 'failed': return 'danger';
-        case 'denied': return 'warning';
-        default: return 'secondary';
-    }
-}
-
-// 결과 텍스트
-function getResultText(result) {
-    switch (result) {
-        case 'success': return '성공';
-        case 'failed': return '실패';
-        case 'denied': return '거부됨';
-        default: return result;
-    }
-}
-
-// 날짜 포맷
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleString('ko-KR');
-}
-
-// 로그 내보내기
-function exportLogs() {
-    $.post('{{ route("admin.permission-logs.export") }}', searchParams)
-        .done(function(response) {
-            if (response.success) {
-                downloadCSV(response.data, response.filename);
-            }
-        })
-        .fail(function(xhr) {
-            console.error('내보내기 실패:', xhr);
-            alert('내보내기에 실패했습니다.');
-        });
-}
-
-// CSV 다운로드
-function downloadCSV(data, filename) {
-    const csvContent = convertToCSV(data.headers, data.rows);
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-}
-
-// CSV 변환
-function convertToCSV(headers, rows) {
-    const csvRows = [headers.join(',')];
-    rows.forEach(row => {
-        csvRows.push(row.map(cell => `"${cell}"`).join(','));
-    });
-    return csvRows.join('\n');
-}
-</script>
-@endpush
+@endsection 

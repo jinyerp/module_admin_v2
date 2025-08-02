@@ -12,7 +12,7 @@
     @stack('css')
 </head>
 
-<body class="h-full">
+<body class="h-full" data-page="none">
 
     <div>
         {{-- 사이드바, 패키지의 resources 폴더 경로 설정 --}}

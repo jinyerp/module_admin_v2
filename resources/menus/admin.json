@@ -27,12 +27,52 @@
                 },
                 {
                     "type": "menu",
-                    "id": "sessions",
+                    "id": "admin-sessions",
                     "label": "세션 관리",
-                    "url": "/admin/sessions",
-                    "permission": "admin.sessions"
+                    "url": "/admin/admin/sessions",
+                    "permission": "admin.admin.sessions"
+                },
+                {
+                    "type": "menu",
+                    "id": "admin-levels",
+                    "label": "등급 관리",
+                    "url": "/admin/admin/levels",
+                    "permission": "admin.admin.levels"
+                },
+                {
+                    "type": "menu",
+                    "id": "admin-permission-logs",
+                    "label": "권한 로그",
+                    "url": "/admin/admin/permission-logs",
+                    "permission": "admin.admin.permission-logs"
                 }
             ]
+        },
+        {
+            "type": "menu",
+            "id": "admin-operation",
+            "label": "운영",
+            "icon": "home",
+            "url": "/admin/admin/operation",
+            "active": false,
+            "permission": "admin.admin-operation",
+            "children": [
+                {
+                    "type": "menu",
+                    "id": "country",
+                    "label": "국가 관리",
+                    "url": "/admin/country",
+                    "permission": "admin.country"
+                },
+                {
+                    "type": "menu",
+                    "id": "language",
+                    "label": "언어 관리",
+                    "url": "/admin/language",
+                    "permission": "admin.language"
+                }
+
+            ]   
         },
         {
             "type": "menu",
@@ -52,11 +92,11 @@
                 },
                 {
                     "type": "menu",
-                    "id": "admin-2fa-logs",
+                    "id": "admin-user-2fa-logs",
                     "label": "2FA 로그",
-                    "url": "/admin/logs/2fa",
+                    "url": "/admin/admin/user-2fa-logs",
                     "active": false,
-                    "permission": "admin.logs.2fa"
+                    "permission": "admin.admin.user-2fa-logs"
                 }
             ]
         },
@@ -87,15 +127,7 @@
                 }
             ]
         },
-        {
-            "type": "menu",
-            "id": "database",
-            "label": "데이터베이스",
-            "icon": "wrench-screwdriver",
-            "url": "/admin/database",
-            "active": false,
-            "permission": "admin.database"
-        },
+        
         {
             "type": "menu",
             "id": "system",
@@ -141,25 +173,21 @@
                     "permission": "admin.systems.performance-logs"
                 }
             ]
+        },
+        {
+            "type": "menu",
+            "id": "database",
+            "label": "데이터베이스",
+            "icon": "wrench-screwdriver",
+            "url": "/admin/database",
+            "active": false,
+            "permission": "admin.database"
         }
         
     ],
     "bottom_menu": [
         
-        {
-            "type": "menu",
-            "id": "country",
-            "label": "국가 관리",
-            "url": "/admin/country",
-            "permission": "admin.country"
-        },
-        {
-            "type": "menu",
-            "id": "language",
-            "label": "언어 관리",
-            "url": "/admin/language",
-            "permission": "admin.language"
-        },
+        
 
         {
             "type": "menu",

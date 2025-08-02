@@ -16,26 +16,26 @@
     </div>
 
     <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8">
-        <!-- 보안 정보 안내 -->
-        <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <!-- Google Authenticator 안내 -->
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div class="flex">
                 <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
                 </div>
                 <div class="ml-3">
-                    <h3 class="text-sm font-medium text-yellow-800">보안 인증 정보</h3>
-                    <div class="mt-2 text-sm text-yellow-700">
-                        <p>현재 접속 정보:</p>
-                        <ul class="list-disc pl-5 space-y-1 mt-1">
-                            <li>IP 주소: {{ request()->ip() }}</li>
-                            <li>브라우저: {{ request()->header('User-Agent') }}</li>
-                            <li>인증 시간: {{ now()->format('Y-m-d H:i:s') }}</li>
-                            <li>접속 프로토콜: {{ request()->secure() ? 'HTTPS' : 'HTTP' }}</li>
+                    <h3 class="text-sm font-medium text-blue-800">Google Authenticator 사용 안내</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p class="font-medium mb-2">2단계 인증을 위해 Google Authenticator 앱을 사용합니다:</p>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>Google Authenticator 앱을 열어주세요</li>
+                            <li>등록된 계정의 6자리 코드를 확인해주세요</li>
+                            <li>코드는 30초마다 자동으로 갱신됩니다</li>
+                            <li>코드가 만료되면 새로 생성된 코드를 입력해주세요</li>
                         </ul>
-                        <p class="mt-2">
-                            모든 인증 시도는 보안을 위해 기록되며, 불법적인 접근 시도는 차단됩니다.
+                        <p class="mt-2 text-xs text-blue-600">
+                            <strong>참고:</strong> Google Authenticator 앱이 설치되어 있지 않다면 App Store 또는 Google Play에서 다운로드하세요.
                         </p>
                     </div>
                 </div>
@@ -101,6 +101,11 @@
                     백업 코드 사용
                 </button>
                 <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <a href="{{ route('admin.2fa.help') }}" 
+                       class="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+                        도움말 보기
+                    </a>
+                    <span class="text-gray-400 dark:text-gray-600 mx-2">|</span>
                     <a href="{{ route('admin.logout') }}" 
                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                        onclick="return confirm('로그아웃하시겠습니까?')">

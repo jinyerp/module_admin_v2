@@ -51,6 +51,8 @@ class JinyAdminServiceProvider extends ServiceProvider
         // 이렇게 바인딩된 값은 app('jiny-admin')으로 어디서든 접근할 수 있습니다.
         $this->app->instance('jiny-admin', __DIR__);
 
+
+
         
     }
 
@@ -88,17 +90,24 @@ class JinyAdminServiceProvider extends ServiceProvider
                 \Jiny\Admin\Console\Commands\AdminUserDelete::class,
                 \Jiny\Admin\Console\Commands\TableDrop::class,
                 \Jiny\Admin\Console\Commands\TableFresh::class,
+                \Jiny\Admin\App\Console\Commands\GeneratePerformanceLogsCommand::class,
             ]);
         }
+
+
 
         // 커스텀 미들웨어 등록
         $router = $this->app['router'];
         $router->aliasMiddleware('admin:auth', 
-            \Jiny\Admin\Http\Middleware\AdminAuth::class);
+            \Jiny\Admin\App\Http\Middleware\AdminAuth::class);
         $router->aliasMiddleware('admin:guest', 
-            \Jiny\Admin\Http\Middleware\AdminGuest::class);
+            \Jiny\Admin\App\Http\Middleware\AdminGuest::class);
         $router->aliasMiddleware('admin:2fa', 
-            \Jiny\Admin\Http\Middleware\Admin2FA::class);
+            \Jiny\Admin\App\Http\Middleware\Admin2FA::class);
+        $router->aliasMiddleware('admin.session.tracker', 
+            \Jiny\Admin\App\Http\Middleware\AdminSessionTracker::class);
+        $router->aliasMiddleware('admin.permission', 
+            \Jiny\Admin\App\Http\Middleware\CheckAdminPermission::class);
 
         // 플래그 이미지 publish 명령 등록
         // 사용법: php artisan vendor:publish --tag=jiny-admin-flags
@@ -106,6 +115,29 @@ class JinyAdminServiceProvider extends ServiceProvider
             __DIR__.'/resources/flags' => public_path('images/flags'),
         ], 'jiny-admin-flags');
 
+        // 언어 관리 시스템 초기화
+        $this->initializeLanguageSystem();
+
+    }
+
+    /**
+     * 언어 관리 시스템 초기화
+     */
+    private function initializeLanguageSystem(): void
+    {
+        try {
+            // App\Services\LanguageService가 존재하는지 확인
+            if (class_exists('\App\Services\LanguageService')) {
+                // 기본 언어가 없으면 초기화
+                \App\Services\LanguageService::initializeDefaultLanguage();
+                
+                // 관리자 로케일 설정 (Config::set 대신 세션/캐시 사용)
+                \App\Services\LanguageService::setLaravelLocaleFromDefaultLanguage();
+            }
+        } catch (\Exception $e) {
+            // 데이터베이스 연결이 안 되거나 테이블이 없는 경우 무시
+            \Log::info('언어 관리 시스템 초기화 중 오류 (정상적인 상황일 수 있음): ' . $e->getMessage());
+        }
     }
 
     /**

@@ -3,9 +3,11 @@ namespace Jiny\Admin\App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Jiny\Admin\Models\AdminActivityLog;
-use Jiny\Admin\Models\AdminAuditLog;
 use Illuminate\Support\Facades\Auth;
+
+use Jiny\Admin\App\Models\AdminUser;
+use Jiny\Admin\App\Models\AdminActivityLog;
+use Jiny\Admin\App\Models\AdminAuditLog;
 
 /**
  * AdminResourceController
@@ -277,7 +279,7 @@ abstract class AdminResourceController extends Controller
         // 기본 Auth + admin_users 체크 방식
         if (Auth::check()) {
             $user = Auth::user();
-            $admin = \Jiny\Admin\Models\AdminUser::where('email', $user->email)->first();
+            $admin = AdminUser::where('email', $user->email)->first();
             if ($admin) {
                 return $admin->id;
             }

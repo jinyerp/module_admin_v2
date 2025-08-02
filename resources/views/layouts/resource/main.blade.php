@@ -1,8 +1,22 @@
 @extends('jiny-admin::layouts.resource.app')
 
+<body data-page="main">
+    @include('jiny-admin::layouts.resource.sidemenu')
 
+    <div class="lg:pl-72">
+        @include('jiny-admin::layouts.resource.header')
 
-@section('layout')
+        <main class="py-10">
+            <div class="px-4 sm:px-6 lg:px-8">
 
-    
-@endsection
+                @yield('heading')
+
+                <!-- Your content -->
+                @yield('content')
+            </div>
+        </main>
+
+    </div>
+
+    @stack('scripts')
+</body>

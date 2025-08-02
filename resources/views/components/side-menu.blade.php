@@ -1,5 +1,5 @@
 <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
-<div id="mobileSidebar" class="relative z-50 lg:hidden hidden" role="dialog" aria-modal="true">
+<div id="mobileSidebar" class="relative z-50 lg:hidden" role="dialog" aria-modal="true" style="display: none;">
     <div id="mobileSidebarBackdrop" class="fixed inset-0 bg-gray-900/80" aria-hidden="true"></div>
     <div class="fixed inset-0 flex">
         <div class="relative mr-16 flex w-full max-w-xs flex-1 -translate-x-full transition-transform duration-300 ease-in-out">
@@ -17,9 +17,7 @@
             <!-- Sidebar component, swap this element with another sidebar if you like -->
             <div class="flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4 sidebar-scroll" style="background-color: {{ $sidebarBgColor }};">
                 <div class="flex h-16 shrink-0 items-center">
-                    <img class="h-8 w-auto"
-                        src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-                        alt="Your Company" />
+                    <x-admin-logo size="h-8 w-auto" />
                 </div>
                 <nav class="flex flex-1 flex-col">
                     <ul role="list" class="flex flex-1 flex-col gap-y-7">
@@ -111,7 +109,7 @@
     <div class="flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4" style="background-color: {{ $sidebarBgColor }};">
         <div class="flex h-16 shrink-0 items-center">
             <a href="/admin" class="inline-block px-4 py-2 text-white text-lg font-bold tracking-wide hover:text-white transition">
-                JinyAdmin
+                <x-admin-logo size="h-8 w-auto" />
             </a>
         </div>
         <nav class="flex flex-1 flex-col">
