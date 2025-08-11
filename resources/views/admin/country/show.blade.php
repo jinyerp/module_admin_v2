@@ -1,8 +1,10 @@
-@extends('jiny-admin::layouts.resource.show')
+@extends('jiny-admin::layouts.admin')
 
 @section('title', '국가 정보 상세')
 @section('description', '국가의 상세 정보를 확인하세요.')
 
+{{-- 페이지 상태 스크립트 --}}
+@section('script-state', 'AdminShow')
 @section('heading')
 <div class="w-full">
     <div class="sm:flex sm:items-end justify-between">

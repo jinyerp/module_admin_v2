@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="../../vendor/autoload.php"
+         colors="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         cacheDirectory=".phpunit.cache"
+         backupGlobals="false"
+         beStrictAboutTestsThatDoNotTestAnything="false"
+         beStrictAboutOutputDuringTests="false"
+         beStrictAboutTodoAnnotatedTests="false"
+         convertDeprecationsToExceptions="false"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         failOnRisky="false"
+         failOnWarning="false"
+         stopOnError="false"
+         stopOnIncomplete="false"
+         stopOnSkipped="false"
+         verbose="true">
+    
+    <testsuites>
+        <testsuite name="Jiny Admin Module">
+            <directory>features</directory>
+            <directory>unit</directory>
+        </testsuite>
+        
+        <testsuite name="Web Features">
+            <directory>features</directory>
+        </testsuite>
+        
+        <testsuite name="Console Commands">
+            <file>features/AdminConsoleCommandsTest.php</file>
+        </testsuite>
+        
+        <testsuite name="Authentication">
+            <file>features/AdminSessionLoginTest.php</file>
+        </testsuite>
+    </testsuites>
+    
+    <source>
+        <include>
+            <directory suffix=".php">../app</directory>
+            <directory suffix=".php">../Http</directory>
+            <directory suffix=".php">../Console</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">../test</directory>
+            <directory suffix=".php">../vendor</directory>
+        </exclude>
+    </source>
+    
+    <coverage>
+        <report>
+            <html outputDirectory="test-results/coverage"/>
+            <text outputFile="test-results/coverage.txt"/>
+            <clover outputFile="test-results/coverage.xml"/>
+        </report>
+    </coverage>
+    
+    <logging>
+        <junit outputFile="test-results/junit.xml"/>
+        <testdoxHtml outputFile="test-results/testdox.html"/>
+        <testdoxText outputFile="test-results/testdox.txt"/>
+    </logging>
+    
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="QUEUE_DRIVER" value="sync"/>
+        <env name="MAIL_DRIVER" value="array"/>
+        <env name="BROADCAST_DRIVER" value="log"/>
+        <env name="LOG_CHANNEL" value="single"/>
+        <env name="LOG_LEVEL" value="debug"/>
+    </php>
+    
+    <extensions>
+        <extension class="Tests\Extensions\TestDatabaseExtension"/>
+    </extensions>
+</phpunit>

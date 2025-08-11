@@ -1,7 +1,13 @@
-@extends('jiny-admin::layouts.resource.edit')
+@extends('jiny-admin::layouts.admin')
 
 @section('title', '국가 정보 수정')
 @section('description', '국가 정보를 수정하세요.')
+
+{{-- 페이지 상태 스크립트 --}}
+@section('script-state', 'AdminEdit')
+@section('heading')
+
+@endsection
 
 {{-- 리소스 edit 페이지 --}}
 @section('content')

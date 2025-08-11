@@ -58,7 +58,7 @@ class AdminUserLogController extends AdminResourceController
      */
     protected function _index(Request $request): View
     {
-        $query = AdminUserLog::query();
+        $query = AdminUserLog::with('admin');
         $filters = $this->getFilterParameters($request);
         $query = $this->applyFilter($filters, $query, []);
         
@@ -148,7 +148,7 @@ class AdminUserLogController extends AdminResourceController
      */
     protected function _show(Request $request, $id): View
     {
-        $userLog = AdminUserLog::findOrFail($id);
+        $userLog = AdminUserLog::with('admin')->findOrFail($id);
         return view('jiny-admin::admin.user_logs.show', [
             'route' => 'admin.admin.user-logs.',
             'userLog' => $userLog,
@@ -161,7 +161,7 @@ class AdminUserLogController extends AdminResourceController
      */
     protected function _edit(Request $request, $id): View
     {
-        $userLog = AdminUserLog::findOrFail($id);
+        $userLog = AdminUserLog::with('admin')->findOrFail($id);
         return view('jiny-admin::admin.user_logs.edit', [
             'route' => 'admin.admin.user-logs.',
             'userLog' => $userLog,

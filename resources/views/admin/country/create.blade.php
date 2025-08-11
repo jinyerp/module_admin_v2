@@ -1,7 +1,13 @@
-@extends('jiny-admin::layouts.resource.create')
+@extends('jiny-admin::layouts.admin')
 
 @section('title', '새 국가 등록')
 @section('description', '새로운 국가 정보를 입력하고 등록하세요.')
+
+{{-- 페이지 상태 스크립트 --}}
+@section('script-state', 'AdminCreate')
+@section('heading')
+
+@endsection
 
 {{-- 리소스 create 페이지 --}}
 @section('content')

@@ -1,8 +1,10 @@
-@extends('jiny-admin::layouts.resource.table')
+@extends('jiny-admin::layouts.admin')
 
 @section('title', '국가 관리')
 @section('description', '시스템에서 지원하는 국가 목록을 관리합니다. 국가명, 국가코드, 통화코드, 언어코드, 시간대, 전화코드 등을 관리할 수 있습니다.')
 
+{{-- 페이지 상태 스크립트 --}}
+@section('script-state', 'AdminTable')
 @section('heading')
     <div class="w-full">
         <div class="sm:flex sm:items-end justify-between">

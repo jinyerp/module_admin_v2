@@ -65,7 +65,18 @@
                                 </div>
                                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
                                     <dt class="text-sm font-medium leading-6 text-gray-900">관리자</dt>
-                                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{ $userLog->admin_name ?? $userLog->admin_user_id ?: '-' }}</dd>
+                                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                                        @if($userLog->admin)
+                                            <a href="{{ route('admin.admin.users.show', $userLog->admin->id) }}" class="text-indigo-600 hover:text-indigo-900 hover:underline">
+                                                {{ $userLog->admin->name ?? $userLog->admin->email ?? $userLog->admin_user_id }}
+                                            </a>
+                                            @if($userLog->admin->email)
+                                                <br><span class="text-gray-500 text-xs">{{ $userLog->admin->email }}</span>
+                                            @endif
+                                        @else
+                                            {{ $userLog->admin_name ?? $userLog->admin_user_id ?: '-' }}
+                                        @endif
+                                    </dd>
                                 </div>
                                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
                                     <dt class="text-sm font-medium leading-6 text-gray-900">IP 주소</dt>
