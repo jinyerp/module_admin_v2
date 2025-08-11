@@ -1,4 +1,4 @@
-<x-ui::sidebar-menu theme="dark" menuPath="{{ app('jiny-admin') . '/resources/menus/admin.json' }}">
+<x-ui::sidebar-menu theme="dark" menuPath="{{ module_path_info('jiny-admin') . '/resources/menus/admin.json' }}">
     
     <div class="w-full flex items-center justify-center py-4">
         <div class="flex items-center space-x-2">

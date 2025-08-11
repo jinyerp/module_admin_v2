@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
-use Jiny\Admin\Models\AdminUser;
-use Jiny\Admin\Models\AdminUserLog;
+use Jiny\Admin\App\Models\AdminUser;
+use Jiny\Admin\App\Models\AdminUserLog;
+use Jiny\Admin\App\Models\AdminUserPasswordError;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -187,29 +188,46 @@ class AdminAuthSessionController extends Controller
      */
     private function checkLoginAttempts(string $email): array
     {
-        $maxAttempts = config('admin.settings.auth.login.max_attempts', 5);
-        $lockoutTime = config('admin.settings.auth.login.lockout_time', 300);
+        $maxAttempts = config('admin.settings.login.security.max_attempts', 5);
+        $lockoutTime = config('admin.settings.login.security.lockout_time', 1800);
+        $maxAttemptsAdminLock = config('admin.settings.login.security.max_attempts_admin_lock', 25);
+        $adminLockTime = config('admin.settings.login.security.admin_lock_time', 0);
         
-        $cacheKey = "admin_login_attempts:{$email}";
-        $attempts = Cache::get($cacheKey, 0);
+        // 데이터베이스에서 최근 오류 횟수 조회 (24시간 내)
+        $attempts = AdminUserPasswordError::getErrorCount($email, 24);
+        
+        // 25회 실패 시 관리자 해제 필요 (무제한 제한)
+        if ($attempts >= $maxAttemptsAdminLock) {
+            return [
+                'success' => false,
+                'message' => '보안상의 이유로 계정이 잠겼습니다. 관리자에게 문의하여 해제를 요청해주세요.',
+                'requires_admin_unlock' => true
+            ];
+        }
 
+        // 5회 실패 시 30분간 제한
         if ($attempts >= $maxAttempts) {
-            $remainingTime = Cache::get("admin_login_lockout:{$email}", 0) - time();
+            // 마지막 오류 시간 확인
+            $lastError = AdminUserPasswordError::where('email', $email)
+                ->orderBy('error_at', 'desc')
+                ->first();
             
-            if ($remainingTime > 0) {
+            if ($lastError && $lastError->error_at->addSeconds($lockoutTime)->isFuture()) {
+                $remainingTime = $lastError->error_at->addSeconds($lockoutTime)->diffInSeconds(now());
                 $minutes = ceil($remainingTime / 60);
+                
                 return [
                     'success' => false,
-                    'message' => "로그인 시도가 너무 많습니다. {$minutes}분 후에 다시 시도해주세요."
+                    'message' => "로그인 시도가 너무 많습니다. {$minutes}분 후에 다시 시도해주세요.",
+                    'remaining_attempts' => $maxAttemptsAdminLock - $attempts
                 ];
-            } else {
-                // 잠금 시간이 지났으면 카운터 초기화
-                Cache::forget($cacheKey);
-                Cache::forget("admin_login_lockout:{$email}");
             }
         }
 
-        return ['success' => true];
+        return [
+            'success' => true,
+            'remaining_attempts' => $maxAttemptsAdminLock - $attempts
+        ];
     }
 
     /**
@@ -272,17 +290,11 @@ class AdminAuthSessionController extends Controller
      */
     private function validateAccountStatus(AdminUser $admin): array
     {
-        // 계정 상태 확인
-        if ($admin->status !== 'active') {
-            $statusMessages = [
-                'inactive' => '비활성화된 계정입니다.',
-                'suspended' => '정지된 계정입니다.',
-                'pending' => '승인 대기 중인 계정입니다.'
-            ];
-
+        // 계정 활성화 상태 확인
+        if (!$admin->is_active) {
             return [
                 'success' => false,
-                'message' => $statusMessages[$admin->status] ?? '사용할 수 없는 계정입니다.'
+                'message' => '비활성화된 계정입니다. 관리자에게 문의하여 활성화를 요청해주세요.'
             ];
         }
 
@@ -509,17 +521,31 @@ class AdminAuthSessionController extends Controller
      */
     private function incrementLoginAttempts(string $email): void
     {
-        $cacheKey = "admin_login_attempts:{$email}";
-        $attempts = Cache::get($cacheKey, 0);
-        $maxAttempts = config('admin.settings.auth.login.max_attempts', 5);
-        $lockoutTime = config('admin.settings.auth.login.lockout_time', 300);
-
-        if ($attempts >= $maxAttempts - 1) {
-            // 잠금 설정
-            Cache::put("admin_login_lockout:{$email}", time() + $lockoutTime, $lockoutTime);
+        // 디버깅을 위한 로그 추가
+        Log::info('incrementLoginAttempts 호출됨', ['email' => $email]);
+        
+        // 데이터베이스에 오류 기록
+        try {
+            AdminUserPasswordError::logError(
+                null, // admin_user_id는 로그인 실패 시 null
+                $email,
+                'password',
+                '비밀번호 오류',
+                request()->ip(),
+                request()->header('User-Agent'),
+                [
+                    'browser' => $this->getBrowserInfo(request()->header('User-Agent')),
+                    'platform' => $this->getPlatformInfo(request()->header('User-Agent')),
+                    'device' => $this->getDeviceInfo(request()->header('User-Agent')),
+                ]
+            );
+            Log::info('AdminUserPasswordError 로그 기록 성공', ['email' => $email]);
+        } catch (\Exception $e) {
+            Log::error('AdminUserPasswordError 로그 기록 실패', [
+                'email' => $email,
+                'error' => $e->getMessage()
+            ]);
         }
-
-        Cache::put($cacheKey, $attempts + 1, $lockoutTime);
     }
 
     /**
@@ -530,8 +556,8 @@ class AdminAuthSessionController extends Controller
      */
     private function clearLoginAttempts(string $email): void
     {
-        Cache::forget("admin_login_attempts:{$email}");
-        Cache::forget("admin_login_lockout:{$email}");
+        // 데이터베이스에서 해당 이메일의 오류 기록 삭제
+        AdminUserPasswordError::where('email', $email)->delete();
     }
 
     /**
@@ -601,15 +627,30 @@ class AdminAuthSessionController extends Controller
      */
     private function logLoginActivity($adminUserId, array $data, string $status, string $msg): void
     {
-        if ($adminUserId) {
+        // 디버깅을 위한 로그 추가
+        Log::info('logLoginActivity 호출됨', [
+            'admin_user_id' => $adminUserId,
+            'status' => $status,
+            'message' => $msg
+        ]);
+        
+        // 로그인 실패 시에도 로그 기록 (admin_user_id가 null인 경우)
+        try {
             AdminUserLog::create([
-                'id' => (string) Str::uuid(),
-                'admin_user_id' => $adminUserId,
+                'admin_user_id' => $adminUserId ? (int) $adminUserId : 0, // null인 경우 0 사용
+                'action' => 'login',
+                'table_name' => 'admin_users',
+                'record_id' => $adminUserId ? (int) $adminUserId : null,
                 'ip_address' => $data['ip'],
                 'user_agent' => $data['ua'],
                 'status' => $status,
                 'message' => $msg,
-                'created_at' => now(),
+            ]);
+            Log::info('AdminUserLog 로그 기록 성공', ['status' => $status]);
+        } catch (\Exception $e) {
+            Log::error('AdminUserLog 로그 기록 실패', [
+                'status' => $status,
+                'error' => $e->getMessage()
             ]);
         }
     }
@@ -632,5 +673,61 @@ class AdminAuthSessionController extends Controller
         }
         
         return back()->withErrors(['email' => $message])->onlyInput('email');
+    }
+
+    /**
+     * 브라우저 정보 가져오기
+     * 
+     * @param string $userAgent
+     * @return string|null
+     */
+    private function getBrowserInfo(string $userAgent): ?string
+    {
+        if (empty($userAgent)) {
+            return null;
+        }
+
+        // 간단한 브라우저 감지
+        if (strpos($userAgent, 'Chrome') !== false) {
+            return 'Chrome';
+        } elseif (strpos($userAgent, 'Firefox') !== false) {
+            return 'Firefox';
+        } elseif (strpos($userAgent, 'Safari') !== false) {
+            return 'Safari';
+        } elseif (strpos($userAgent, 'Edge') !== false) {
+            return 'Edge';
+        } elseif (strpos($userAgent, 'MSIE') !== false || strpos($userAgent, 'Trident') !== false) {
+            return 'Internet Explorer';
+        }
+
+        return 'Unknown';
+    }
+
+    /**
+     * 플랫폼 정보 가져오기
+     * 
+     * @param string $userAgent
+     * @return string|null
+     */
+    private function getPlatformInfo(string $userAgent): ?string
+    {
+        if (empty($userAgent)) {
+            return null;
+        }
+
+        // 간단한 플랫폼 감지
+        if (strpos($userAgent, 'Windows') !== false) {
+            return 'Windows';
+        } elseif (strpos($userAgent, 'Mac') !== false) {
+            return 'macOS';
+        } elseif (strpos($userAgent, 'Linux') !== false) {
+            return 'Linux';
+        } elseif (strpos($userAgent, 'Android') !== false) {
+            return 'Android';
+        } elseif (strpos($userAgent, 'iOS') !== false) {
+            return 'iOS';
+        }
+
+        return 'Unknown';
     }
 }

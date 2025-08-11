@@ -54,7 +54,7 @@ return new class extends Migration
 
             // 외래키 제약조건: 사용자나 관리자가 삭제되어도 에러 로그는 유지 (데이터 보존)
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
-            $table->foreign('resolved_by')->references('id')->on('admin_emails')->onDelete('set null');
+            $table->foreign('resolved_by')->references('id')->on('admin_users')->onDelete('set null');
             // 에러 타입별 조회 성능 향상 (복합 인덱스, 에러 유형별 분석)
             $table->index(['error_type', 'created_at']);
             // 중요도별 조회 성능 향상 (복합 인덱스, 우선순위별 처리)

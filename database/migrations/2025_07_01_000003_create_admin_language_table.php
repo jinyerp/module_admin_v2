@@ -17,18 +17,28 @@ class CreateAdminLanguageTable extends Migration
             $table->id();
             $table->timestamps();
 
-            $table->string('enable')->default(1);
-
-            $table->string('code');
-            $table->string('name')->nullable();
-            $table->string('flag')->nullable();
+            $table->boolean('enable')->default(true)->comment('활성화 여부');
+            $table->boolean('is_default')->default(false)->comment('기본 언어 여부');
+            
+            $table->string('code', 5)->unique()->comment('언어 코드 (ISO 639-1)');
+            $table->string('name')->comment('언어명');
+            $table->string('flag')->nullable()->comment('국기 이미지 파일명');
 
             // 단일국가 언어
-            $table->string('country')->nullable();
+            $table->string('country', 3)->nullable()->comment('주요 사용 국가 코드');
 
-            $table->string('users')->nullable();
-            $table->string('users_percent')->nullable();
+            $table->integer('users')->nullable()->comment('사용자 수');
+            $table->decimal('users_percent', 5, 2)->nullable()->comment('사용자 비율 (%)');
+            
+            // 인덱스 추가
+            $table->index('enable');
+            $table->index('is_default');
+            $table->index('country');
         });
+
+        // 시더 실행
+        $seeder = new \Jiny\Admin\Database\Seeders\AdminLanguageSeeder();
+        $seeder->run();
     }
 
     /**

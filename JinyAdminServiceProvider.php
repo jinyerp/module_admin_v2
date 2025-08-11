@@ -22,19 +22,16 @@ class JinyAdminServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        \Log::info('JinyAdminServiceProvider register() started');
+        
         // 모듈: 라우트 설정
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
-        // $this->loadRoutesFrom(__DIR__.'/routes/api.php');
-        // $this->loadRoutesFrom(__DIR__.'/routes/admin.php');
+        $this->loadRoutesFrom(__DIR__.'/routes/admin.php');
+        
         $this->loadViewsFrom(__DIR__.'/resources/views', $this->package);
 
         // 데이터베이스
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
-
-         // 기존 config/auth.php 병합
-        $this->mergeConfigFrom(
-            __DIR__.'/config/auth.php', 'auth'
-        );
 
         // admin config 파일 등록
         $this->mergeConfigFrom(
@@ -44,16 +41,104 @@ class JinyAdminServiceProvider extends ServiceProvider
         // 패키지 루트 경로 등록
         $this->registerPackageRoot();
 
-        // 패키지 절대 경로 저장
-        // app->instance()는 Laravel 컨테이너에 싱글톤 인스턴스를 바인딩하는 메서드입니다.
-        // 첫 번째 매개변수 'jiny-admin'은 컨테이너에서 사용할 키(식별자)입니다.
-        // 두 번째 매개변수 __DIR__은 현재 파일의 디렉토리 경로를 바인딩합니다.
-        // 이렇게 바인딩된 값은 app('jiny-admin')으로 어디서든 접근할 수 있습니다.
-        $this->app->instance('jiny-admin', __DIR__);
-
-
+        // Module 시스템을 사용하여 패키지 정보 등록
+        // 기존 app->instance 방식 대신 Module 시스템 사용
+        \Jiny\Modules\App\Facades\Module::setPath('jiny-admin', __DIR__);
+        \Jiny\Modules\App\Facades\Module::set('jiny-admin', 'name', 'Jiny Admin');
+        \Jiny\Modules\App\Facades\Module::set('jiny-admin', 'version', '1.0.0');
+        \Jiny\Modules\App\Facades\Module::set('jiny-admin', 'description', 'Jiny Admin Management System');
+        \Jiny\Modules\App\Facades\Module::set('jiny-admin', 'author', 'Jiny Team');
+        \Jiny\Modules\App\Facades\Module::set('jiny-admin', 'created_at', '2024-01-01 00:00:00');
 
         
+
+        // Admin 가드와 프로바이더 완전 독립적 등록 (순서 중요)
+        $this->registerAdminProvider();
+        $this->registerAdminGuard();
+        
+        \Log::info('JinyAdminServiceProvider register() completed');
+    }
+
+    /**
+     * Admin 프로바이더 등록
+     */
+    protected function registerAdminProvider(): void
+    {
+        \Log::info('Registering admin provider');
+        
+        // 프로바이더 등록
+        $this->app['auth']->provider('admins', function ($app, array $config) {
+            $provider = new \Illuminate\Auth\EloquentUserProvider(
+                $app['hash'],
+                \Jiny\Admin\App\Models\AdminUser::class
+            );
+            
+            \Log::info('Admin provider created', [
+                'provider_name' => 'admins',
+                'model' => \Jiny\Admin\App\Models\AdminUser::class,
+                'provider_class' => get_class($provider)
+            ]);
+            
+            return $provider;
+        });
+        
+        \Log::info('Admin provider registered successfully');
+    }
+
+    /**
+     * Admin 가드 등록
+     */
+    protected function registerAdminGuard(): void
+    {
+        \Log::info('Registering admin guard');
+        
+        // config에 admin 가드 설정 추가
+        $this->app['config']->set('auth.guards.admin', [
+            'driver' => 'session',
+            'provider' => 'admins',
+        ]);
+        
+        // config에 admins 프로바이더 설정 추가
+        $this->app['config']->set('auth.providers.admins', [
+            'driver' => 'eloquent',
+            'model' => \Jiny\Admin\App\Models\AdminUser::class,
+        ]);
+        
+        \Log::info('Admin guard config set', [
+            'guards' => $this->app['config']->get('auth.guards'),
+            'providers' => $this->app['config']->get('auth.providers')
+        ]);
+        
+        // 가드 확장 (기본 SessionGuard 사용)
+        $this->app['auth']->extend('admin', function ($app, $name, array $config) {
+            try {
+                $provider = $app['auth']->createUserProvider($config['provider']);
+                
+                $guard = new \Illuminate\Auth\SessionGuard(
+                    $name,
+                    $provider,
+                    $app['session.store']
+                );
+                
+                \Log::info('Admin guard created successfully', [
+                    'guard_name' => $name,
+                    'provider' => $config['provider'],
+                    'driver' => $config['driver'],
+                    'provider_class' => get_class($provider),
+                    'guard_class' => get_class($guard)
+                ]);
+                
+                return $guard;
+            } catch (\Exception $e) {
+                \Log::error('Failed to create admin guard', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                throw $e;
+            }
+        });
+        
+        \Log::info('Admin guard registered successfully');
     }
 
     /**
@@ -80,7 +165,7 @@ class JinyAdminServiceProvider extends ServiceProvider
         // 서비스 바인딩
         // AdminSideMenuService 싱글톤 등록
         $this->app->singleton('admin.side-menu.service', function($app) {
-            return new \Jiny\Admin\Services\AdminSideMenuService();
+            return new \Jiny\Admin\App\Services\AdminSideMenuService();
         });
 
         // 콘솔 명령 등록
@@ -88,26 +173,15 @@ class JinyAdminServiceProvider extends ServiceProvider
             $this->commands([
                 \Jiny\Admin\Console\Commands\AdminUsers::class,
                 \Jiny\Admin\Console\Commands\AdminUserDelete::class,
+                \Jiny\Admin\Console\Commands\AdminUserUnlock::class,
                 \Jiny\Admin\Console\Commands\TableDrop::class,
                 \Jiny\Admin\Console\Commands\TableFresh::class,
                 \Jiny\Admin\App\Console\Commands\GeneratePerformanceLogsCommand::class,
             ]);
         }
 
-
-
-        // 커스텀 미들웨어 등록
-        $router = $this->app['router'];
-        $router->aliasMiddleware('admin:auth', 
-            \Jiny\Admin\App\Http\Middleware\AdminAuth::class);
-        $router->aliasMiddleware('admin:guest', 
-            \Jiny\Admin\App\Http\Middleware\AdminGuest::class);
-        $router->aliasMiddleware('admin:2fa', 
-            \Jiny\Admin\App\Http\Middleware\Admin2FA::class);
-        $router->aliasMiddleware('admin.session.tracker', 
-            \Jiny\Admin\App\Http\Middleware\AdminSessionTracker::class);
-        $router->aliasMiddleware('admin.permission', 
-            \Jiny\Admin\App\Http\Middleware\CheckAdminPermission::class);
+        // Admin 미들웨어 등록 (가드 등록 후)
+        $this->registerAdminMiddleware();
 
         // 플래그 이미지 publish 명령 등록
         // 사용법: php artisan vendor:publish --tag=jiny-admin-flags
@@ -117,7 +191,43 @@ class JinyAdminServiceProvider extends ServiceProvider
 
         // 언어 관리 시스템 초기화
         $this->initializeLanguageSystem();
+    }
 
+    /**
+     * Admin 미들웨어 등록
+     */
+    protected function registerAdminMiddleware(): void
+    {
+        $router = $this->app['router'];
+        
+        \Log::info('Admin middleware registration started');
+        
+        try {
+            // Admin 인증 미들웨어 - 별칭 대신 클래스명 직접 사용
+            $router->aliasMiddleware('admin.auth', 
+                \Jiny\Admin\App\Http\Middleware\AdminAuth::class);
+            
+            // Admin 게스트 미들웨어 (로그인하지 않은 사용자만 접근)
+            $router->aliasMiddleware('admin.guest', 
+                \Jiny\Admin\App\Http\Middleware\AdminGuest::class);
+            
+            // Admin 2FA 미들웨어
+            $router->aliasMiddleware('admin.2fa', 
+                \Jiny\Admin\App\Http\Middleware\Admin2FA::class);
+            
+            // Admin 세션 트래커 미들웨어
+            $router->aliasMiddleware('admin.session.tracker', 
+                \Jiny\Admin\App\Http\Middleware\AdminSessionTracker::class);
+            
+            // Admin 권한 체크 미들웨어
+            $router->aliasMiddleware('admin.permission', 
+                \Jiny\Admin\App\Http\Middleware\CheckAdminPermission::class);
+            
+            \Log::info('All admin middlewares registered successfully');
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to register admin middlewares: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -137,6 +247,25 @@ class JinyAdminServiceProvider extends ServiceProvider
         } catch (\Exception $e) {
             // 데이터베이스 연결이 안 되거나 테이블이 없는 경우 무시
             \Log::info('언어 관리 시스템 초기화 중 오류 (정상적인 상황일 수 있음): ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Admin 패키지 정보 설정
+     */
+    protected function registerAdminPackageInfo(): void
+    {
+        try {
+            // 새로운 파사드 형태 사용
+            \Jiny\Modules\App\Facades\Module('admin')::setPath(__DIR__);
+            \Jiny\Modules\App\Facades\Module('admin')::set('name', 'Admin Module');
+            \Jiny\Modules\App\Facades\Module('admin')::set('version', '1.0.0');
+            \Jiny\Modules\App\Facades\Module('admin')::set('description', 'Jiny Admin Management System');
+            
+            \Log::info('Admin package info registered successfully');
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to register admin package info: ' . $e->getMessage());
         }
     }
 

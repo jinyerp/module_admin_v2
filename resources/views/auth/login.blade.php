@@ -1,7 +1,8 @@
-@extends('jiny-admin::layouts.auth.login')
+@extends('jiny-admin::layouts.centered')
 
 @section('title', '관리자 로그인 - Jiny Admin')
-
+{{-- 페이지 상태 스크립트 --}}
+@section('script-state', 'AdminLogin')
 @section('content')
     <div class="text-center mb-8">
         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
@@ -100,7 +101,7 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.login.store') }}" method="POST" class="space-y-6">
+        <form action="{{ route('admin.login.store') }}" method="POST" class="space-y-6" id="admin-login-form">
             @csrf
             <div>
                 <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">이메일</label>
@@ -133,6 +134,5 @@
         <p>본 로그인은 관리자 전용입니다. 무단 사용 시 법적 처벌을 받을 수 있습니다.</p>
         <p class="mt-1">© 2025 Jiny Admin. All rights reserved.</p>
     </div>
-
 
 @endsection

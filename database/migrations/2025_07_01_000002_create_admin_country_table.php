@@ -17,25 +17,30 @@ class CreateAdminCountryTable extends Migration
             $table->id();
             $table->timestamps();
 
-            $table->string('enable')->default(1);
+            $table->boolean('enable')->default(true)->comment('활성화 여부');
+            $table->string('code', 3)->unique()->comment('국가 코드 (ISO 3166-1 alpha-3)');
+            $table->string('name')->comment('국가명');
+            $table->string('flag')->nullable()->comment('국기 이미지 파일명');
 
-            $table->string('code');
-            $table->string('name')->nullable();
-            $table->string('flag')->nullable();
+            $table->decimal('latitude', 10, 8)->nullable()->comment('위도');
+            $table->decimal('longitude', 11, 8)->nullable()->comment('경도');
 
-            $table->string('latitude')->nullable(); // 위도
-            $table->string('longitude')->nullable(); // 경도
+            $table->string('lang', 5)->nullable()->comment('주요 언어 코드');
 
-            $table->string('lang')->nullable();
+            $table->text('description')->nullable()->comment('국가 설명');
 
-            $table->text('description')->nullable();
-
-            $table->string('continent')->nullable(); // 대륙 정보
-            $table->string('continent_manager')->nullable(); // 대륙(지역) 총괄 관리자
-            $table->string('continent_manager_email')->nullable(); // 대륙(지역) 총괄 관리자 이메일
+            $table->string('continent')->nullable()->comment('대륙 정보');
+            $table->string('continent_manager')->nullable()->comment('대륙(지역) 총괄 관리자');
+            $table->string('continent_manager_email')->nullable()->comment('대륙(지역) 총괄 관리자 이메일');
+            
+            // 인덱스 추가
+            $table->index('enable');
+            $table->index('continent');
         });
 
-        
+        // 시더 실행
+        $seeder = new \Jiny\Admin\Database\Seeders\AdminCountrySeeder();
+        $seeder->run();
     }
 
     /**

@@ -2,6 +2,40 @@
 
 return [
     'prefix' => 'admin',
+    
+    'login' => [
+        'security' => [
+            'max_attempts' => 5, // 5회 비밀번호 틀린 경우
+            'lockout_time' => 1800, // 30분간 접속 제한 (30분 = 1800초)
+            'max_attempts_admin_lock' => 25, // 25번 비밀번호 오류 시 관리자 해제 필요
+            'admin_lock_time' => 0, // 관리자 해제 전까지 무제한 제한 (0 = 무제한)
+            'log_attempts' => true, // 로그인 시도 기록
+            'log_failures' => true, // 로그인 실패 기록
+            'log_successes' => true, // 로그인 성공 기록
+            'notify_admin_on_lockout' => true, // 계정 잠금 시 관리자에게 알림
+            'auto_unlock_after_admin_reset' => true, // 관리자 해제 후 자동 잠금 해제
+        ],
+        'session' => [
+            'timeout' => 3600, // 세션 타임아웃 (1시간)
+            'concurrent_sessions' => 3, // 동시 접속 세션 수 제한
+            'force_logout_on_password_change' => true, // 비밀번호 변경 시 다른 세션 강제 로그아웃
+            'regenerate_on_login' => true, // 로그인 시 세션 재생성
+        ],
+        'ip_security' => [
+            'whitelist' => [], // 접속 허용 IP 목록
+            'blacklist' => [], // 접속 차단 IP 목록
+            'geolocation_check' => false, // 지리적 위치 기반 접속 제한
+            'allowed_countries' => [], // 접속 허용 국가 목록
+            'blocked_countries' => [], // 접속 차단 국가 목록
+        ],
+        'notification' => [
+            'email_on_failed_login' => true, // 로그인 실패 시 이메일 알림
+            'email_on_account_lockout' => true, // 계정 잠금 시 이메일 알림
+            'sms_on_failed_login' => false, // 로그인 실패 시 SMS 알림
+            'sms_on_account_lockout' => false, // 계정 잠금 시 SMS 알림
+        ],
+    ],
+    
     'password' => [
         'length_min' => 8, // 비밀번호 최소 길이
         'length_max' => 120, // 비밀번호 최대 길이
@@ -18,12 +52,20 @@ return [
         'issuer' => env('ADMIN_2FA_ISSUER', 'Jiny Admin'),
         'window' => env('ADMIN_2FA_WINDOW', 1), // TOTP 검증 윈도우
     ],
+    
 
     'auth' => [
         'login' => [
-            'max_attempts' => 5,
-            'lockout_time' => 300,
+            'max_attempts' => 5, // 5회 비밀번호 틀린 경우
+            'lockout_time' => 1800, // 30분간 접속 제한 (30분 = 1800초)
+            'max_attempts_admin_lock' => 25, // 25번 비밀번호 오류 시 관리자 해제 필요
+            'admin_lock_time' => 0, // 관리자 해제 전까지 무제한 제한 (0 = 무제한)
             'remember_me' => true,
+            'log_attempts' => true, // 로그인 시도 기록
+            'log_failures' => true, // 로그인 실패 기록
+            'log_successes' => true, // 로그인 성공 기록
+            'notify_admin_on_lockout' => true, // 계정 잠금 시 관리자에게 알림
+            'auto_unlock_after_admin_reset' => true, // 관리자 해제 후 자동 잠금 해제
         ],
         'regist' => [
             'enable' => false,
@@ -46,6 +88,16 @@ return [
         'login_disable' => [
             'enable' => false,
             'reason' => null,
+        ],
+        'security' => [
+            'ip_whitelist' => [], // 접속 허용 IP 목록
+            'ip_blacklist' => [], // 접속 차단 IP 목록
+            'geolocation_check' => false, // 지리적 위치 기반 접속 제한
+            'allowed_countries' => [], // 접속 허용 국가 목록
+            'blocked_countries' => [], // 접속 차단 국가 목록
+            'session_timeout' => 3600, // 세션 타임아웃 (1시간)
+            'concurrent_sessions' => 3, // 동시 접속 세션 수 제한
+            'force_logout_on_password_change' => true, // 비밀번호 변경 시 다른 세션 강제 로그아웃
         ],
     ],
     

@@ -1,6 +1,6 @@
 <?php
 
-namespace Jiny\Admin\Services;
+namespace Jiny\Admin\App\Services;
 
 class AdminSideMenuService
 {
@@ -21,4 +21,4 @@ class AdminSideMenuService
         // 임시로 빈 배열 반환
         return [];
     }
-}
+} 

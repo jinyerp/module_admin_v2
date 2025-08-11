@@ -413,17 +413,17 @@ class AdminAuthSessionController extends Controller
             return redirect($intendedUrl)->with('success', '관리자 로그인 성공');
         }
 
-        // 기본적으로 대시보드로 리다이렉트
+        // 기본적으로 /admin으로 리다이렉트
         if ($isAjax) {
             return response()->json([
                 'success' => true,
                 'message' => '관리자 로그인 성공',
-                'redirect' => route('admin.dashboard'),
+                'redirect' => '/admin',
                 'user' => $admin
             ]);
         }
         
-        return redirect()->intended(route('admin.dashboard'))->with('success', '관리자 로그인 성공');
+        return redirect()->intended('/admin')->with('success', '관리자 로그인 성공');
     }
 
     /**
@@ -434,7 +434,9 @@ class AdminAuthSessionController extends Controller
      */
     private function isAjaxRequest(Request $request): bool
     {
-        return $request->expectsJson() || $request->header('Accept') === 'application/json';
+        return $request->expectsJson() || 
+               $request->header('Accept') === 'application/json' ||
+               $request->header('X-Requested-With') === 'XMLHttpRequest';
     }
 
     /**
@@ -454,6 +456,7 @@ class AdminAuthSessionController extends Controller
 
     /**
      * 세션 데이터 업데이트
+     * Laravel의 기본 Auth 시스템을 사용하여 admin 가드로 로그인
      * 
      * @param Request $request
      * @param AdminUser $admin
@@ -462,10 +465,46 @@ class AdminAuthSessionController extends Controller
     private function updateSessionData(Request $request, AdminUser $admin): void
     {
         if ($request->hasSession()) {
+            \Log::info('Starting admin session update', [
+                'admin_id' => $admin->id,
+                'admin_email' => $admin->email,
+                'session_id' => $request->session()->getId()
+            ]);
+            
+            // 세션 재생성 (보안 강화)
             $request->session()->regenerate();
+            
+            \Log::info('Session regenerated', [
+                'new_session_id' => $request->session()->getId()
+            ]);
+            
+            // Laravel의 기본 Auth 시스템을 사용하여 admin 가드로 로그인
+            $adminGuard = Auth::guard('admin');
+            $adminGuard->login($admin);
+            
+            \Log::info('Admin guard login completed', [
+                'admin_id' => $admin->id,
+                'guard_check' => $adminGuard->check(),
+                'guard_user_id' => $adminGuard->id()
+            ]);
+            
+            // 추가 세션 데이터 저장
             $request->session()->put('admin_last_activity', now()->toDateTimeString());
             $request->session()->put('admin_user_id', $admin->id);
             $request->session()->put('admin_user_type', $admin->type);
+            
+            \Log::info('Admin user logged in via Auth guard', [
+                'admin_id' => $admin->id,
+                'email' => $admin->email,
+                'guard' => 'admin',
+                'session_data' => [
+                    'admin_user_id' => $request->session()->get('admin_user_id'),
+                    'admin_user_type' => $request->session()->get('admin_user_type'),
+                    'admin_last_activity' => $request->session()->get('admin_last_activity')
+                ]
+            ]);
+        } else {
+            \Log::warning('No session available for admin login');
         }
     }
 
@@ -639,13 +678,12 @@ class AdminAuthSessionController extends Controller
     {
         if ($adminUserId) {
             AdminUserLog::create([
-                'id' => (string) Str::uuid(),
                 'admin_user_id' => $adminUserId,
+                'action' => 'login',
                 'ip_address' => $data['ip'],
                 'user_agent' => $data['ua'],
                 'status' => $status,
                 'message' => $msg,
-                'created_at' => now(),
             ]);
         }
     }
@@ -663,10 +701,40 @@ class AdminAuthSessionController extends Controller
         if ($isAjax) {
             return response()->json([
                 'success' => false,
-                'message' => $message
+                'message' => $message,
+                'error_code' => $this->getErrorCode($message)
             ], $statusCode);
         }
         
         return back()->withErrors(['email' => $message])->onlyInput('email');
+    }
+
+    /**
+     * 오류 메시지에 따른 오류 코드 반환
+     * 
+     * @param string $message
+     * @return string
+     */
+    private function getErrorCode(string $message): string
+    {
+        if (str_contains($message, '비밀번호')) {
+            return 'PASSWORD_MISMATCH';
+        } elseif (str_contains($message, '등록되지 않은')) {
+            return 'USER_NOT_FOUND';
+        } elseif (str_contains($message, '시도가 너무 많습니다')) {
+            return 'TOO_MANY_ATTEMPTS';
+        } elseif (str_contains($message, '비활성화')) {
+            return 'ACCOUNT_INACTIVE';
+        } elseif (str_contains($message, '정지된')) {
+            return 'ACCOUNT_SUSPENDED';
+        } elseif (str_contains($message, '승인 대기')) {
+            return 'ACCOUNT_PENDING';
+        } elseif (str_contains($message, '이메일 인증')) {
+            return 'EMAIL_NOT_VERIFIED';
+        } elseif (str_contains($message, '시스템')) {
+            return 'SYSTEM_ERROR';
+        } else {
+            return 'LOGIN_FAILED';
+        }
     }
 }

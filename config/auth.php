@@ -11,7 +11,7 @@ return [
     'providers' => [
         'admins' => [
             'driver' => 'eloquent',
-            'model' => Jiny\Admin\Models\AdminUser::class,
+            'model' => Jiny\Admin\App\Models\AdminUser::class,
         ],
     ],
 ];

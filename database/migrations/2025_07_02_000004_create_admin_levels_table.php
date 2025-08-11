@@ -21,8 +21,8 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // 기본 데이터 삽입
-        DB::table('admin_levels')->insert([
+        // 기본 관리자 등급 데이터 삽입
+        $levels = [
             [
                 'name' => 'Super',
                 'code' => 'super',
@@ -59,7 +59,21 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-        ]);
+            [
+                'name' => 'Viewer',
+                'code' => 'viewer',
+                'badge_color' => 'gray',
+                'can_list' => true,
+                'can_create' => false,
+                'can_read' => true,
+                'can_update' => false,
+                'can_delete' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
+
+        DB::table('admin_levels')->insert($levels);
     }
 
     public function down()

@@ -1,4 +1,4 @@
-@extends('jiny-admin::layouts.admin.main')
+@extends('jiny-admin::layouts.resource.main')
 
 @section('title', '메일 설정')
 

@@ -48,8 +48,8 @@ return new class extends Migration
             $table->timestamps(); // 생성 및 수정 시각 (created_at, updated_at, 유지보수 이력)
 
             // 외래키 제약조건: 관리자가 삭제되어도 유지보수 로그는 유지 (set null, 데이터 보존)
-            $table->foreign('initiated_by')->references('id')->on('admin_emails')->onDelete('set null');
-            $table->foreign('completed_by')->references('id')->on('admin_emails')->onDelete('set null');
+            $table->foreign('initiated_by')->references('id')->on('admin_users')->onDelete('set null');
+            $table->foreign('completed_by')->references('id')->on('admin_users')->onDelete('set null');
             // 유지보수 타입별 생성일 조회 성능 향상 (복합 인덱스, 타입별 유지보수 분석)
             $table->index(['maintenance_type', 'created_at']);
             // 상태별 생성일 조회 성능 향상 (복합 인덱스, 유지보수 상태 분석)

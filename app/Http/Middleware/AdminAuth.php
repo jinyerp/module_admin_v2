@@ -16,11 +16,36 @@ class AdminAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
+        \Log::info('AdminAuth middleware is running', [
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'session_id' => $request->session()->getId(),
+            'session_data' => $request->session()->all()
+        ]);
+        
         // admin 가드를 사용하여 인증 확인
-        if (!Auth::guard('admin')->check()) {
+        $adminGuard = Auth::guard('admin');
+        $isAuthenticated = $adminGuard->check();
+        
+        \Log::info('Admin authentication check', [
+            'is_authenticated' => $isAuthenticated,
+            'guard_name' => 'admin',
+            'user_id' => $isAuthenticated ? $adminGuard->id() : null,
+            'user' => $isAuthenticated ? $adminGuard->user() : null,
+            'session_user_id' => $request->session()->get('admin_user_id'),
+            'session_last_activity' => $request->session()->get('admin_last_activity')
+        ]);
+        
+        if (!$isAuthenticated) {
+            \Log::info('Admin not authenticated, redirecting to login');
             return $this->handleUnauthenticated($request);
         }
 
+        \Log::info('Admin is authenticated, proceeding', [
+            'admin_id' => $adminGuard->id(),
+            'admin_email' => $adminGuard->user()->email ?? 'unknown'
+        ]);
+        
         // 인증된 관리자 정보를 뷰에서 사용할 수 있도록 공유
         $this->shareAdminUserToView();
 

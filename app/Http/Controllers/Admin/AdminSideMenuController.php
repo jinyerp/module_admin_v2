@@ -2,7 +2,7 @@
 
 namespace Jiny\Admin\App\Http\Controllers\Admin;
 
-use Jiny\Admin\App\Services\Menu\AdminSideMenuService;
+use Jiny\Admin\Services\AdminSideMenuService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 

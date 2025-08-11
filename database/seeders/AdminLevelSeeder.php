@@ -10,6 +10,9 @@ class AdminLevelSeeder extends Seeder
 {
     /**
      * 관리자 등급 시드
+     * 
+     * 이 시더는 관리자 등급을 초기화합니다.
+     * 마이그레이션에서 직접 호출하지 않고 별도로 실행해야 합니다.
      */
     public function run(): void
     {
@@ -70,7 +73,10 @@ class AdminLevelSeeder extends Seeder
         // 새 등급 삽입
         DB::table('admin_levels')->insert($levels);
 
-        $this->command->info('관리자 등급이 성공적으로 생성되었습니다.');
-        $this->command->info('생성된 등급: Super, Admin, Staff, Viewer');
+        // 명령어 객체가 있을 때만 정보 출력
+        if ($this->command) {
+            $this->command->info('관리자 등급이 성공적으로 생성되었습니다.');
+            $this->command->info('생성된 등급: Super, Admin, Staff, Viewer');
+        }
     }
 } 

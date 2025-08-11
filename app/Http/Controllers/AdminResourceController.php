@@ -136,8 +136,10 @@ abstract class AdminResourceController extends Controller
         // Activity Log 기록
         $this->logActivity('update', '항목 수정', $id, $request->all());
         
-        // Audit Log 기록
-        $this->logAudit('update', $oldData, $request->all(), '항목이 수정되었습니다.', $id);
+        // Audit Log 기록 (oldData가 null일 수 있음)
+        if ($oldData !== null) {
+            $this->logAudit('update', $oldData, $request->all(), '항목이 수정되었습니다.', $id);
+        }
         
         return $result;
     }
@@ -153,8 +155,10 @@ abstract class AdminResourceController extends Controller
         // Activity Log 기록
         $this->logActivity('delete', '항목 삭제', $id, null);
         
-        // Audit Log 기록
-        $this->logAudit('delete', $oldData, null, '항목이 삭제되었습니다.', $id);
+        // Audit Log 기록 (oldData가 null일 수 있음)
+        if ($oldData !== null) {
+            $this->logAudit('delete', $oldData, null, '항목이 삭제되었습니다.', $id);
+        }
         
         return $result;
     }
@@ -361,6 +365,16 @@ abstract class AdminResourceController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * 수정 전 데이터 가져오기 (Audit Log용)
+     */
+    protected function getOldData($id)
+    {
+        // 자식 클래스에서 구현해야 하는 추상 메서드
+        // 기본 구현은 null을 반환
+        return null;
     }
 
 }

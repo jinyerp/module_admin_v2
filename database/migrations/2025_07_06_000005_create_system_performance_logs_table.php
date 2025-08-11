@@ -60,4 +60,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('system_performance_logs');
     }
-};
+}; 

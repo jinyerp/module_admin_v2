@@ -1,4 +1,4 @@
-@extends('jiny-admin::layouts.admin.main')
+@extends('jiny-admin::layouts.resource.main')
 
 @section('title', '관리자 대시보드')
 @section('description', '시스템 전체 현황과 최근 활동을 확인할 수 있습니다.')
