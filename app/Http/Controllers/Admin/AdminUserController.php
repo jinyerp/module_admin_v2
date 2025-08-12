@@ -173,7 +173,22 @@ class AdminUserController extends AdminResourceController
     protected function _show(Request $request, $id): View
     {
         $user = AdminUser::findOrFail($id);
-        return view('jiny-admin::admin.users.show', compact('user'));
+        
+        // 2FA 상태 정보 추가
+        $twoFactorInfo = [
+            'has_2fa_enabled' => $user->has2FAEnabled(),
+            'needs_2fa_setup' => $user->needs2FASetup(),
+            'has_backup_codes' => $user->hasBackupCodes(),
+            'google_2fa_enabled' => $user->hasGoogle2FAEnabled(),
+            'ms_2fa_enabled' => $user->hasMS2FAEnabled(),
+            'is_2fa_required' => $user->is2FARequired(),
+            'is_2fa_setup_complete' => $user->is2FASetupComplete(),
+            'is_2fa_verified' => $user->is2FAVerified(),
+            '2fa_type' => $user->get2FAType(),
+            '2fa_status' => $user->get2FAStatus(),
+        ];
+        
+        return view('jiny-admin::admin.users.show', compact('user', 'twoFactorInfo'));
     }
 
     /**
