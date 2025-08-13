@@ -11,8 +11,34 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Exception;
 
+/**
+ * 시스템 성능 로그 관리 컨트롤러
+ * 
+ * 시스템의 성능 메트릭을 수집하고 관리하는 기능을 제공합니다.
+ * 웹 애플리케이션, 데이터베이스, 캐시, 메모리 등의 성능을 모니터링합니다.
+ * 
+ * @see docs/features/SystemPerformanceLog.md
+ *  
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 시스템 성능 로그 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminSystemPerformanceLogTest.php
+ * ```
+ */
 class AdminSystemPerformanceLogController extends Controller
 {
+    /**
+     * 뷰 경로 설정
+     */
+    protected string $indexPath = 'admin::admin.system_performance_log.index';
+    protected string $createPath = 'admin::admin.system_performance_log.create';
+    protected string $editPath = 'admin::admin.system_performance_log.edit';
+    protected string $showPath = 'admin::admin.system_performance_log.show';
+    protected string $statsPath = 'admin::admin.system_performance_log.stats';
+    protected string $realtimePath = 'admin::admin.system_performance_log.realtime';
+
     /**
      * 성능 로그 목록 조회
      */
@@ -79,7 +105,7 @@ class AdminSystemPerformanceLogController extends Controller
             'min_value' => SystemPerformanceLog::min('value'),
         ];
 
-        return view('jiny-admin::admin.system_performance_log.index', [
+        return view($this->indexPath, [
             'rows' => $performanceLogs,
             'stats' => $stats,
             'metricTypes' => SystemPerformanceLog::getMetricTypes(),
@@ -94,7 +120,7 @@ class AdminSystemPerformanceLogController extends Controller
      */
     public function create(): View
     {
-        return view('jiny-admin::admin.system_performance_log.create', [
+        return view($this->createPath, [
             'metricTypes' => SystemPerformanceLog::getMetricTypes(),
             'statuses' => SystemPerformanceLog::getStatuses(),
         ]);
@@ -123,7 +149,7 @@ class AdminSystemPerformanceLogController extends Controller
 
         SystemPerformanceLog::create($request->all());
 
-        return redirect()->route('admin-systems.performance-logs.index')
+        return redirect()->route('admin.systems.performance-logs.index')
             ->with('success', '성능 로그가 성공적으로 생성되었습니다.');
     }
 
@@ -139,7 +165,7 @@ class AdminSystemPerformanceLogController extends Controller
             ->limit(10)
             ->get();
 
-        return view('jiny-admin::admin.system_performance_log.show', [
+        return view($this->showPath, [
             'performanceLog' => $systemPerformanceLog,
             'relatedLogs' => $relatedLogs,
             'metricTypes' => SystemPerformanceLog::getMetricTypes(),
@@ -152,7 +178,7 @@ class AdminSystemPerformanceLogController extends Controller
      */
     public function edit(SystemPerformanceLog $systemPerformanceLog): View
     {
-        return view('jiny-admin::admin.system_performance_log.edit', [
+        return view($this->editPath, [
             'performanceLog' => $systemPerformanceLog,
             'metricTypes' => SystemPerformanceLog::getMetricTypes(),
             'statuses' => SystemPerformanceLog::getStatuses(),
@@ -180,7 +206,7 @@ class AdminSystemPerformanceLogController extends Controller
             'measured_at' => 'required|date',
         ]);
 
-        $systemPerformanceLog->update($request->all());
+        $systemPerformanceLog->update($request->except(['_method', '_token']));
 
         return redirect()->route('admin.systems.performance-logs.index')
             ->with('success', '성능 로그가 성공적으로 수정되었습니다.');
@@ -240,7 +266,7 @@ class AdminSystemPerformanceLogController extends Controller
                 ->get(),
         ];
 
-        return view('jiny-admin::admin.system_performance_log.stats', [
+        return view($this->statsPath, [
             'stats' => $stats,
             'metricTypes' => SystemPerformanceLog::getMetricTypes(),
         ]);
@@ -346,7 +372,7 @@ class AdminSystemPerformanceLogController extends Controller
             ->orderBy('measured_at', 'desc')
             ->get();
 
-        return view('jiny-admin::admin.system_performance_log.realtime', [
+        return view($this->realtimePath, [
             'recentLogs' => $recentLogs,
             'criticalAlerts' => $criticalAlerts,
             'metricTypes' => SystemPerformanceLog::getMetricTypes(),

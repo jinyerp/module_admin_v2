@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 use Jiny\Admin\App\Models\AdminLevel;
 use Jiny\Admin\App\Http\Controllers\AdminResourceController;
@@ -18,20 +19,82 @@ use Jiny\Admin\App\Models\AdminUser;
 use App\Helpers\PermissionHelper;
 use Jiny\Admin\App\Models\AdminPermissionLog;
 
+/**
+ * AdminLevelController
+ *
+ * 관리자 등급 관리 컨트롤러
+ * AdminResourceController를 상속하여 템플릿 메소드 패턴으로 구현
+ * 
+ * AdminUser와 밀접한 연관성을 가짐:
+ * - AdminUser.type 필드가 AdminLevel.code와 연결
+ * - 등급별 사용자 수 계산 및 표시
+ * - 권한 기반 사용자 접근 제어
+ *
+ * @package Jiny\Admin\App\Http\Controllers\Admin
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ *
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/AdminLevel.md
+ *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 등급 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminLevelTest.php
+ * ```
+ */
 class AdminLevelController extends AdminResourceController
 {
-    protected $sortableColumns = ['id', 'name', 'code', 'badge_color', 'can_create', 'can_read', 'can_update', 'can_delete', 'sort_order', 'created_at', 'updated_at'];
-    protected $filterable = ['name', 'code', 'badge_color', 'can_create', 'can_read', 'can_update', 'can_delete', 'sort_order'];
+    // 뷰 경로 변수 정의
+    public $indexPath = 'jiny-admin::admin.levels.index';
+    public $createPath = 'jiny-admin::admin.levels.create';
+    public $editPath = 'jiny-admin::admin.levels.edit';
+    public $showPath = 'jiny-admin::admin.levels.show';
+
+    // 필터링 및 정렬 관련 설정
+    protected $filterable = ['name', 'code', 'badge_color', 'can_create', 'can_read', 'can_update', 'can_delete'];
+    protected $validFilters = ['name', 'code', 'badge_color', 'can_create', 'can_read', 'can_update', 'can_delete'];
+    protected $sortableColumns = ['id', 'name', 'code', 'badge_color', 'can_create', 'can_read', 'can_update', 'can_delete', 'created_at', 'updated_at'];
+    
     private $config;
 
+    /**
+     * 생성자
+     * 패키지의 admin config를 읽어와서 초기화
+     */
     public function __construct()
     {
+        parent::__construct();
+        
         // 패키지의 admin config 읽어오기
         $this->config = config('admin.settings');
     }
 
     /**
+     * 테이블 이름 반환
+     * Activity Log 테이블 이름 반환
+     */
+    protected function getTableName()
+    {
+        return 'admin_levels';
+    }
+
+    /**
+     * 모듈 이름 반환
+     * Activity Log 모듈 이름 반환
+     */
+    protected function getModuleName()
+    {
+        return 'admin.admin_levels';
+    }
+
+    /**
      * 권한 체크 헬퍼 메소드
+     * AdminUser의 등급 정보를 기반으로 권한을 검증
      */
     private function checkPermission(string $permission): bool
     {
@@ -83,8 +146,8 @@ class AdminLevelController extends AdminResourceController
             return true;
         }
 
-        // 등급 정보 조회
-        $level = $admin->level;
+        // 등급 정보 조회 (AdminUser.type과 AdminLevel.code 연결)
+        $level = AdminLevel::where('code', $admin->type)->first();
         
         if (!$level) {
             \Log::warning('권한 체크 실패: 등급 정보를 찾을 수 없음', [
@@ -100,7 +163,7 @@ class AdminLevelController extends AdminResourceController
             'level_id' => $level->id,
             'level_name' => $level->name,
             'level_code' => $level->code,
-            'can_list' => $level->can_list,
+            'can_list' => $level->can_list ?? false,
             'can_create' => $level->can_create,
             'can_read' => $level->can_read,
             'can_update' => $level->can_update,
@@ -149,9 +212,29 @@ class AdminLevelController extends AdminResourceController
     }
 
     /**
-     * 등급 목록
+     * 등급별 사용자 수 계산
+     * AdminUser와 AdminLevel의 연관성을 반영
      */
-    public function index(Request $request): View
+    private function calculateUserCountsByLevel()
+    {
+        $levels = AdminLevel::all();
+        $userCounts = [];
+        
+        foreach ($levels as $level) {
+            // AdminUser.type 필드가 AdminLevel.code와 연결
+            $userCount = AdminUser::where('type', $level->code)->count();
+            $userCounts[$level->id] = $userCount;
+        }
+        
+        return $userCounts;
+    }
+
+    /**
+     * 등급 목록 조회
+     * index() 에서 템플릿 메소드 호출
+     * AdminUser와의 연관성을 고려하여 사용자 수 표시
+     */
+    protected function _index(Request $request): View
     {
         // 임시 디버깅: 현재 사용자 정보 출력
         $adminId = Auth::guard('admin')->id();
@@ -170,7 +253,8 @@ class AdminLevelController extends AdminResourceController
         ]);
         
         if ($admin) {
-            $level = $admin->level;
+            // AdminUser.type과 AdminLevel.code 연결 확인
+            $level = AdminLevel::where('code', $admin->type)->first();
             \Log::info('현재 사용자 디버깅', [
                 'admin_id' => $admin->id,
                 'admin_name' => $admin->name,
@@ -178,7 +262,7 @@ class AdminLevelController extends AdminResourceController
                 'level_exists' => $level ? 'yes' : 'no',
                 'level_name' => $level ? $level->name : 'N/A',
                 'level_code' => $level ? $level->code : 'N/A',
-                'can_list' => $level ? $level->can_list : 'N/A'
+                'can_list' => $level ? ($level->can_list ?? false) : 'N/A'
             ]);
         } else {
             \Log::warning('사용자 정보를 찾을 수 없음', ['admin_id' => $adminId]);
@@ -195,9 +279,10 @@ class AdminLevelController extends AdminResourceController
 
         $query = AdminLevel::query();
 
-        // 각 등급별 사용자 수 계산
+        // 각 등급별 사용자 수 계산 (AdminUser와의 연관성 반영)
         $levels = $query->get();
         $levelsWithUserCount = $levels->map(function ($level) {
+            // AdminUser.type 필드가 AdminLevel.code와 연결
             $level->users_count = AdminUser::where('type', $level->code)->count();
             return $level;
         });
@@ -238,15 +323,11 @@ class AdminLevelController extends AdminResourceController
                 return $level->can_delete == $request->filter_can_delete;
             });
         }
-        if ($request->filled('filter_sort_order')) {
-            $levelsWithUserCount = $levelsWithUserCount->filter(function ($level) use ($request) {
-                return $level->sort_order == $request->filter_sort_order;
-            });
-        }
+
 
         // 정렬
-        $sortBy = $request->get('sort', 'sort_order');
-        $sortOrder = $request->get('order', 'asc');
+        $sortBy = $request->get('sort', 'id');
+        $sortOrder = $request->get('order', 'desc');
         
         if (in_array($sortBy, $this->sortableColumns)) {
             if ($sortOrder === 'asc') {
@@ -255,7 +336,7 @@ class AdminLevelController extends AdminResourceController
                 $levelsWithUserCount = $levelsWithUserCount->sortByDesc($sortBy);
             }
         } else {
-            $levelsWithUserCount = $levelsWithUserCount->sortBy('sort_order');
+            $levelsWithUserCount = $levelsWithUserCount->sortBy('id');
         }
 
         // 페이지네이션
@@ -282,7 +363,7 @@ class AdminLevelController extends AdminResourceController
         // 권한 로그 기록
         $this->logPermissionAction('list', 'level', null, 'success');
 
-        return view('jiny-admin::admin.levels.index', [
+        return view($this->indexPath, [
             'rows' => $rows,
             'filters' => $filters,
             'route' => 'admin.admin.levels.',
@@ -292,7 +373,7 @@ class AdminLevelController extends AdminResourceController
     /**
      * 등급 생성 폼
      */
-    public function create(Request $request): View
+    protected function _create(Request $request): View
     {
         // 임시: 권한 체크 우회 (디버깅용)
         // TODO: 실제 권한 체크로 복원
@@ -306,15 +387,16 @@ class AdminLevelController extends AdminResourceController
         // 권한 로그 기록
         $this->logPermissionAction('create', 'level', null, 'success');
 
-        return view('jiny-admin::admin.levels.create',[
+        return view($this->createPath, [
             'route' => 'admin.admin.levels.',
         ]);
     }
 
     /**
      * 등급 상세 보기
+     * 해당 등급을 사용하는 AdminUser 목록도 함께 표시
      */
-    public function show(Request $request, $id): View
+    protected function _show(Request $request, $id): View
     {
         // 임시: 권한 체크 우회 (디버깅용)
         // TODO: 실제 권한 체크로 복원
@@ -328,12 +410,16 @@ class AdminLevelController extends AdminResourceController
         */
 
         $level = AdminLevel::findOrFail($id);
+        
+        // 해당 등급을 사용하는 AdminUser 목록 조회 (연관성 반영)
+        $usersWithThisLevel = AdminUser::where('type', $level->code)->get();
 
         // 권한 로그 기록
         $this->logPermissionAction('read', 'level', $id, 'success');
 
-        return view('jiny-admin::admin.levels.show', [
+        return view($this->showPath, [
             'level' => $level,
+            'users' => $usersWithThisLevel,
             'route' => 'admin.admin.levels.',
         ]);
     }
@@ -341,7 +427,7 @@ class AdminLevelController extends AdminResourceController
     /**
      * 등급 수정 폼
      */
-    public function edit(Request $request, $id): View
+    protected function _edit(Request $request, $id): View
     {
         // 임시: 권한 체크 우회 (디버깅용)
         // TODO: 실제 권한 체크로 복원
@@ -355,12 +441,16 @@ class AdminLevelController extends AdminResourceController
         */
 
         $level = AdminLevel::findOrFail($id);
+        
+        // 해당 등급을 사용하는 AdminUser 수 확인
+        $userCount = AdminUser::where('type', $level->code)->count();
 
         // 권한 로그 기록
         $this->logPermissionAction('update', 'level', $id, 'success');
 
-        return view('jiny-admin::admin.levels.edit', [
+        return view($this->editPath, [
             'level' => $level,
+            'userCount' => $userCount,
             'route' => 'admin.admin.levels.',
         ]);
     }
@@ -368,7 +458,7 @@ class AdminLevelController extends AdminResourceController
     /**
      * 등급 저장
      */
-    public function store(Request $request): JsonResponse
+    protected function _store(Request $request): JsonResponse
     {
         // 임시: 권한 체크 우회 (디버깅용)
         // TODO: 실제 권한 체크로 복원
@@ -412,6 +502,9 @@ class AdminLevelController extends AdminResourceController
 
             $level = AdminLevel::create($validated);
 
+            // Activity Log 기록
+            $this->logActivity('create', '등급 생성', $level->id, $validated);
+
             // 권한 로그 기록
             $this->logPermissionAction('create', 'level', $level->id, 'success');
 
@@ -442,8 +535,9 @@ class AdminLevelController extends AdminResourceController
 
     /**
      * 등급 수정
+     * AdminUser와의 연관성을 고려하여 안전하게 수정
      */
-    public function update(Request $request, $id): JsonResponse
+    protected function _update(Request $request, $id): JsonResponse
     {
         // 임시: 권한 체크 우회 (디버깅용)
         // TODO: 실제 권한 체크로 복원
@@ -461,6 +555,9 @@ class AdminLevelController extends AdminResourceController
 
         try {
             $level = AdminLevel::findOrFail($id);
+
+            // 수정 전 데이터 가져오기 (Audit Log용)
+            $oldData = $level->toArray();
 
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -488,6 +585,12 @@ class AdminLevelController extends AdminResourceController
             $validated['can_delete'] = $request->has('can_delete');
 
             $level->update($validated);
+
+            // Activity Log 기록
+            $this->logActivity('update', '등급 수정', $level->id, $validated);
+            
+            // Audit Log 기록
+            $this->logAudit('update', $oldData, $validated, '등급 수정', $level->id);
 
             // 권한 로그 기록
             $this->logPermissionAction('update', 'level', $id, 'success');
@@ -519,8 +622,9 @@ class AdminLevelController extends AdminResourceController
 
     /**
      * 등급 삭제
+     * AdminUser와의 연관성을 확인하여 안전하게 삭제
      */
-    public function destroy(Request $request): JsonResponse
+    protected function _destroy(Request $request): JsonResponse
     {
         $id = $request->route('id');
         
@@ -541,17 +645,26 @@ class AdminLevelController extends AdminResourceController
         try {
             $level = AdminLevel::findOrFail($id);
 
-            // 사용 중인 등급인지 확인 (AdminUser의 type 필드 기반)
+            // 삭제 전 데이터 가져오기 (Audit Log용)
+            $oldData = $level->toArray();
+
+            // 사용 중인 등급인지 확인 (AdminUser.type 필드와 AdminLevel.code 연결)
             $usersUsingLevel = AdminUser::where('type', $level->code)->count();
             if ($usersUsingLevel > 0) {
                 $this->logPermissionAction('delete', 'level', $id, 'denied', '사용 중인 등급은 삭제할 수 없습니다.');
                 return response()->json([
                     'success' => false,
-                    'message' => '사용 중인 등급은 삭제할 수 없습니다.'
+                    'message' => '사용 중인 등급은 삭제할 수 없습니다. (사용자 수: ' . $usersUsingLevel . '명)'
                 ], 400);
             }
 
             $level->delete();
+
+            // Activity Log 기록
+            $this->logActivity('delete', '등급 삭제', $id, ['deleted_id' => $id]);
+            
+            // Audit Log 기록
+            $this->logAudit('delete', $oldData, null, '등급 삭제', null);
 
             // 권한 로그 기록
             $this->logPermissionAction('delete', 'level', $id, 'success');
@@ -571,7 +684,8 @@ class AdminLevelController extends AdminResourceController
     }
 
     /**
-     * 삭제 확인 폼
+     * 삭제 확인 폼 반환
+     * 해당 등급을 사용하는 AdminUser 정보도 함께 표시
      */
     public function deleteConfirm(Request $request, $id)
     {
@@ -589,11 +703,15 @@ class AdminLevelController extends AdminResourceController
         $level = AdminLevel::findOrFail($id);
         $randomKey = strtoupper(substr(md5(uniqid()), 0, 8));
         
+        // 해당 등급을 사용하는 AdminUser 목록 조회
+        $usersWithThisLevel = AdminUser::where('type', $level->code)->get();
+        
         // 권한 로그 기록
         $this->logPermissionAction('delete', 'level', $id, 'success');
 
         return view('jiny-admin::admin.levels.form_delete', [
             'level' => $level,
+            'users' => $usersWithThisLevel,
             'title' => '등급 삭제',
             'randomKey' => $randomKey
         ]);
@@ -601,6 +719,7 @@ class AdminLevelController extends AdminResourceController
 
     /**
      * 일괄 삭제
+     * AdminUser와의 연관성을 확인하여 안전하게 삭제
      */
     public function bulkDelete(Request $request): JsonResponse
     {
@@ -626,14 +745,14 @@ class AdminLevelController extends AdminResourceController
 
             $ids = $request->input('ids');
             
-            // 사용 중인 등급이 포함되어 있는지 확인 (AdminUser의 type 필드 기반)
+            // 사용 중인 등급이 포함되어 있는지 확인 (AdminUser.type 필드와 AdminLevel.code 연결)
             $levels = AdminLevel::whereIn('id', $ids)->get();
             $usedLevels = [];
             
             foreach ($levels as $level) {
                 $userCount = AdminUser::where('type', $level->code)->count();
                 if ($userCount > 0) {
-                    $usedLevels[] = $level->name;
+                    $usedLevels[] = $level->name . ' (' . $userCount . '명 사용 중)';
                 }
             }
             
@@ -645,7 +764,16 @@ class AdminLevelController extends AdminResourceController
                 ], 400);
             }
 
+            // 삭제 전 데이터 가져오기 (Audit Log용)
+            $oldData = AdminLevel::whereIn('id', $ids)->get()->toArray();
+
             AdminLevel::whereIn('id', $ids)->delete();
+
+            // Activity Log 기록
+            $this->logActivity('delete', '등급 일괄 삭제', null, ['deleted_ids' => $ids]);
+            
+            // Audit Log 기록
+            $this->logAudit('delete', $oldData, null, '등급 일괄 삭제', null);
 
             // 권한 로그 기록
             $this->logPermissionAction('bulk_delete', 'level', null, 'success');
@@ -746,20 +874,24 @@ class AdminLevelController extends AdminResourceController
         $orders = $request->input('orders');
         
         foreach ($orders as $index => $id) {
-            AdminLevel::where('id', $id)->update(['sort_order' => $index + 1]);
+            // sort_order 컬럼이 존재하는지 확인
+            if (Schema::hasColumn('admin_levels', 'sort_order')) {
+                AdminLevel::where('id', $id)->update(['sort_order' => $index + 1]);
+            }
         }
 
         // 권한 로그 기록
         $this->logPermissionAction('update_order', 'level', null, 'success');
 
-        return redirect()->route('admin.level.index')
+        return redirect()->route('admin.admin.levels.index')
             ->with('success', '정렬 순서가 업데이트되었습니다.');
     }
 
     /**
      * 통계 정보
+     * AdminUser와의 연관성을 반영한 통계
      */
-    public function stats(): View
+    public function stats()
     {
         // 임시: 권한 체크 우회 (디버깅용)
         // TODO: 실제 권한 체크로 복원
@@ -776,12 +908,21 @@ class AdminLevelController extends AdminResourceController
             'total' => AdminLevel::count(),
             'with_users' => AdminLevel::whereIn('code', AdminUser::distinct('type')->pluck('type'))->count(),
             'without_users' => AdminLevel::whereNotIn('code', AdminUser::distinct('type')->pluck('type'))->count(),
+            'total_users' => AdminUser::count(),
+            'level_distribution' => AdminLevel::all()->map(function ($level) {
+                return [
+                    'name' => $level->name,
+                    'code' => $level->code,
+                    'user_count' => AdminUser::where('type', $level->code)->count(),
+                    'color' => $level->badge_color
+                ];
+            })
         ];
 
         // 권한 로그 기록
         $this->logPermissionAction('stats', 'level', null, 'success');
 
-        return view('jiny-admin::admin.level.stats', compact('stats'));
+        return response()->json($stats);
     }
 
     /**
@@ -793,18 +934,27 @@ class AdminLevelController extends AdminResourceController
     }
 
     /**
-     * 테이블명 반환
+     * 등급별 사용자 통계 조회
+     * AdminUser와의 연관성을 반영한 상세 통계
      */
-    protected function getTableName()
+    public function getUserStatistics()
     {
-        return 'admin_levels';
-    }
-
-    /**
-     * 모듈명 반환
-     */
-    protected function getModuleName()
-    {
-        return 'level';
+        $levels = AdminLevel::orderBy('sort_order')->get();
+        $statistics = [];
+        
+        foreach ($levels as $level) {
+            $users = AdminUser::where('type', $level->code)->get();
+            
+            $statistics[] = [
+                'level' => $level,
+                'user_count' => $users->count(),
+                'active_users' => $users->where('status', 'active')->count(),
+                'inactive_users' => $users->where('status', 'inactive')->count(),
+                'suspended_users' => $users->where('status', 'suspended')->count(),
+                'recent_users' => $users->where('created_at', '>=', now()->subDays(30))->count(),
+            ];
+        }
+        
+        return $statistics;
     }
 } 

@@ -2,7 +2,7 @@
 
 namespace Jiny\Admin\App\Http\Controllers\Admin;
 
-use Illuminate\Routing\Controller;
+use Jiny\Admin\App\Http\Controllers\AdminResourceController;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -14,37 +14,123 @@ use Illuminate\Support\Facades\Storage;
 use Jiny\Admin\App\Models\AdminActivityLog;
 use Jiny\Admin\App\Models\AdminUser;
 
-class AdminActivityLogController extends Controller
+/**
+ * AdminActivityLogController
+ *
+ * 관리자 활동 로그 관리 컨트롤러
+ * AdminResourceController를 상속하여 템플릿 메소드 패턴으로 구현
+ * 
+ * 관리자 패널에서 발생하는 모든 사용자 활동을 추적하고 기록:
+ * - 사용자 행동 분석 및 보안 감사
+ * - 시스템 접근 및 데이터 변경 이력 추적
+ * - 관리자별 활동 패턴 및 통계 분석
+ * - 보안 위협 탐지 및 대응
+ *
+ * @package Jiny\Admin\App\Http\Controllers\Admin
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ *
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/AdminActivityLog.md
+ *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 활동 로그 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminActivityLogTest.php
+ * ```
+ */
+class AdminActivityLogController extends AdminResourceController
 {
-    protected $filterable = ['admin_user_id', 'action', 'ip_address'];
+    // 뷰 경로 변수 정의
+    public $indexPath = 'jiny-admin::admin.activity-logs.index';
+    public $createPath = 'jiny-admin::admin.activity-logs.create';
+    public $editPath = 'jiny-admin::admin.activity-logs.edit';
+    public $showPath = 'jiny-admin::admin.activity-logs.show';
+
+    // 필터링 및 정렬 관련 설정
+    protected $filterable = ['admin_user_id', 'action', 'ip_address', 'search', 'date_from', 'date_to'];
     protected $validFilters = [
         'admin_user_id' => 'string|uuid',
         'action' => 'string|max:100',
         'ip_address' => 'string|max:45',
+        'search' => 'string',
+        'date_from' => 'date',
+        'date_to' => 'date'
     ];
     protected $sortableColumns = ['id', 'admin_user_id', 'action', 'ip_address', 'created_at'];
 
     /**
-     * 활동 로그 목록 조회
+     * 로깅 활성화
      */
-    public function index(Request $request): View
+    protected $activeLog = true;
+
+    /**
+     * 로그 테이블명
+     */
+    protected $logTableName = 'admin_activity_logs';
+
+    /**
+     * 생성자
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * 테이블 이름 반환
+     * Activity Log 테이블 이름 반환
+     */
+    protected function getTableName()
+    {
+        return 'admin_activity_logs';
+    }
+
+    /**
+     * 모듈 이름 반환
+     * Activity Log 모듈 이름 반환
+     */
+    protected function getModuleName()
+    {
+        return 'admin.activity-logs';
+    }
+
+    /**
+     * 활동 로그 목록 조회 (템플릿 메소드 구현)
+     * 관리자 활동 로그를 필터링하여 표시
+     */
+    protected function _index(Request $request): View
     {
         $query = AdminActivityLog::with('adminUser');
         $filters = $this->getFilterParameters($request);
-        $query = $this->applyFilter($filters, $query, []);
+        $query = $this->applyFilter($filters, $query, ['search']);
         
-        $sortField = $request->get('sort', 'id');
+        $sortField = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
 
         $rows = $query->paginate(15);
 
-        return view('jiny-admin::admin.activity-logs.index', [
+        // 통계 데이터 추가
+        $stats = $this->getActivityStats();
+
+        // 관리자 목록 (필터용)
+        $adminUsers = AdminUser::select('id', 'name', 'email')
+            ->orderBy('name')
+            ->get();
+
+        return view($this->indexPath, [
             'rows' => $rows,
             'filters' => $filters,
             'sort' => $sortField,
             'dir' => $sortDirection,
-            'route' => 'admin.admin.activity-log.',
+            'route' => 'admin.admin.activity-logs.',
+            'stats' => $stats,
+            'adminUsers' => $adminUsers,
             'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
@@ -52,7 +138,7 @@ class AdminActivityLogController extends Controller
     /**
      * 활동 로그 생성 폼 (보안상 비활성화)
      */
-    public function create(Request $request): View
+    protected function _create(Request $request): View
     {
         // 보안상 활동 로그는 수동 생성 불가
         abort(403, '활동 로그는 시스템에서 자동으로 생성됩니다.');
@@ -61,7 +147,7 @@ class AdminActivityLogController extends Controller
     /**
      * 활동 로그 저장 (보안상 비활성화)
      */
-    public function store(Request $request): JsonResponse
+    protected function _store(Request $request): JsonResponse
     {
         // 보안상 활동 로그는 수동 생성 불가
         return response()->json([
@@ -71,21 +157,22 @@ class AdminActivityLogController extends Controller
     }
 
     /**
-     * 활동 로그 상세 조회
+     * 활동 로그 상세 조회 (템플릿 메소드 구현)
      */
-    public function show(Request $request, $id): View
+    protected function _show(Request $request, $id): View
     {
         $log = AdminActivityLog::with('adminUser')->findOrFail($id);
-        return view('jiny-admin::admin.activity-logs.show', [
+        return view($this->showPath, [
+            'route' => 'admin.admin.activity-logs.',
             'log' => $log,
-            'route' => 'admin.admin.activity-log.',
+            'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
 
     /**
      * 활동 로그 수정 폼 (보안상 비활성화)
      */
-    public function edit(Request $request, $id): View
+    protected function _edit(Request $request, $id): View
     {
         // 보안상 활동 로그는 수정 불가
         abort(403, '활동 로그는 보안상 수정할 수 없습니다.');
@@ -94,7 +181,7 @@ class AdminActivityLogController extends Controller
     /**
      * 활동 로그 업데이트 (보안상 비활성화)
      */
-    public function update(Request $request, $id): JsonResponse
+    protected function _update(Request $request, $id): JsonResponse
     {
         // 보안상 활동 로그는 수정 불가
         return response()->json([
@@ -106,7 +193,7 @@ class AdminActivityLogController extends Controller
     /**
      * 활동 로그 삭제 (보안상 비활성화)
      */
-    public function destroy(Request $request, $id): JsonResponse
+    protected function _destroy(Request $request): JsonResponse
     {
         // 보안상 활동 로그는 삭제 불가
         return response()->json([
@@ -118,7 +205,7 @@ class AdminActivityLogController extends Controller
     /**
      * 필터링 적용
      */
-    protected function applyFilter($filters, $query, $likeFields = [])
+    protected function applyFilter(array $filters, $query, array $likeFields = []): object
     {
         // 기본 필터 적용
         foreach ($this->filterable as $column) {
@@ -141,6 +228,23 @@ class AdminActivityLogController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * 활동 로그 통계 데이터 조회
+     */
+    private function getActivityStats()
+    {
+        return [
+            'total_logs' => AdminActivityLog::count(),
+            'today_logs' => AdminActivityLog::whereDate('created_at', today())->count(),
+            'this_week' => AdminActivityLog::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'unique_users' => AdminActivityLog::distinct('admin_user_id')->count(),
+            'recent_activity' => AdminActivityLog::with('adminUser')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+        ];
     }
 
     /**
@@ -303,6 +407,9 @@ class AdminActivityLogController extends Controller
 
         $logs = $query->orderBy('created_at', 'desc')->get();
 
+        // Activity Log 기록
+        $this->logActivity('export', '활동 로그 내보내기', null, ['count' => $logs->count()]);
+
         // CSV 형식으로 변환
         $csvData = [];
         $csvData[] = [
@@ -377,6 +484,9 @@ class AdminActivityLogController extends Controller
 
         $days = $request->days;
         $deletedCount = AdminActivityLog::where('created_at', '<', now()->subDays($days))->delete();
+
+        // Activity Log 기록
+        $this->logActivity('cleanup', '활동 로그 정리', null, ['days' => $days, 'deleted_count' => $deletedCount]);
 
         return response()->json([
             'success' => true,

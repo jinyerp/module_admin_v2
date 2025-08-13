@@ -299,16 +299,112 @@ abstract class AdminResourceController extends Controller
     protected function getSeverityForAction($action)
     {
         $severityMap = [
-            'create' => 'medium',
-            'update' => 'medium',
-            'delete' => 'high',
-            'read' => 'low',
-            'edit' => 'low',
+            'create' => 'info',
+            'read' => 'info',
+            'update' => 'warning',
+            'delete' => 'danger',
+            'login' => 'info',
+            'logout' => 'info',
+            'failed_login' => 'warning',
+            'permission_denied' => 'danger',
+            'bulk_delete' => 'danger',
+            'bulk_update' => 'warning',
         ];
 
-        return $severityMap[$action] ?? 'medium';
+        return $severityMap[$action] ?? 'info';
     }
 
+    /**
+     * 필터 파라미터 추출
+     */
+    protected function getFilterParameters(Request $request): array
+    {
+        $filters = [];
+        
+        foreach ($this->validFilters as $filter) {
+            if ($request->filled("filter_{$filter}")) {
+                $filters[$filter] = $request->input("filter_{$filter}");
+            }
+        }
+        
+        return $filters;
+    }
+
+    /**
+     * 필터 적용
+     */
+    protected function applyFilter(array $filters, $query, array $likeFields = []): object
+    {
+        foreach ($filters as $key => $value) {
+            if (empty($value)) continue;
+            
+            switch ($key) {
+                case 'search':
+                    if (!empty($likeFields)) {
+                        $query->where(function($q) use ($value, $likeFields) {
+                            foreach ($likeFields as $field) {
+                                $q->orWhere($field, 'like', "%{$value}%");
+                            }
+                        });
+                    }
+                    break;
+                    
+                case 'type':
+                case 'status':
+                case 'utype':
+                case 'country':
+                    $query->where($key, $value);
+                    break;
+                    
+                case 'is_verified':
+                    if ($value == '1') {
+                        $query->whereNotNull('email_verified_at');
+                    } else {
+                        $query->whereNull('email_verified_at');
+                    }
+                    break;
+                    
+                case 'created_at':
+                    $this->applyDateFilter($query, 'created_at', $value);
+                    break;
+                    
+                case 'login_count':
+                    $query->where('login_count', '>=', $value);
+                    break;
+                    
+                case 'phone':
+                    $query->where('phone', 'like', "%{$value}%");
+                    break;
+                    
+                case 'memo':
+                    $query->where('memo', 'like', "%{$value}%");
+                    break;
+            }
+        }
+        
+        return $query;
+    }
+
+    /**
+     * 날짜 필터 적용
+     */
+    protected function applyDateFilter($query, string $field, string $value): void
+    {
+        switch ($value) {
+            case 'today':
+                $query->whereDate($field, today());
+                break;
+            case 'week':
+                $query->whereBetween($field, [now()->startOfWeek(), now()->endOfWeek()]);
+                break;
+            case 'month':
+                $query->whereMonth($field, now()->month);
+                break;
+            case 'year':
+                $query->whereYear($field, now()->year);
+                break;
+        }
+    }
 
     /**
      * 라우트 이름 추출
@@ -318,53 +414,6 @@ abstract class AdminResourceController extends Controller
         $route = $request->route()->getName();
         $route = substr($route, 0, strrpos($route, '.')).".";
         return $route;
-    }
-
-    /**
-     * 리퀘스트에서 filter_ 접두사가 붙은 파라미터를 추출합니다.
-     */
-    protected function getFilterParameters(Request $request)
-    {
-        $filters = [];
-        foreach ($request->all() as $key => $value) {
-            if (str_starts_with($key, 'filter_') && !empty($value)) {
-                $filters[substr($key, 7)] = $value;
-            }
-        }
-        return $filters;
-    }
-
-    /**
-     * 필터 적용
-     */
-    protected function applyFilter($filters, $query, $likeFields)
-    {
-        foreach ($this->filterable as $column) {
-            if (isset($filters[$column]) && $filters[$column] !== '') {
-                if (in_array($column, $likeFields)) {
-                    $query->where($column, 'like', "%{$filters[$column]}%");
-                } else {
-                    $query->where($column, $filters[$column]);
-                }
-            }
-        }
-
-        // search는 or 조건
-        if (isset($filters['search']) && $filters['search'] !== '') {
-            $query->where(function($q) use ($filters, $likeFields) {
-                $first = true;
-                foreach($likeFields as $field) {
-                    if ($first) {
-                        $q->where($field, 'like', "%{$filters['search']}%");
-                        $first = false;
-                    } else {
-                        $q->orWhere($field, 'like', "%{$filters['search']}%");
-                    }
-                }
-            });
-        }
-
-        return $query;
     }
 
     /**

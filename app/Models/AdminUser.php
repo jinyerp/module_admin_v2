@@ -4,10 +4,19 @@ namespace Jiny\Admin\App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AdminUser extends Authenticatable
 {
-    use Notifiable;
+    use Notifiable, HasFactory;
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Jiny\Admin\Database\Factories\AdminUserFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.

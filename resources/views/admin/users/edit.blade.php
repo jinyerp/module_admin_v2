@@ -4,33 +4,37 @@
 @section('description', '관리자 회원 정보를 수정하세요.')
 
 {{-- 리소스 edit 페이지 --}}
+@section('heading')
+<div class="w-full">
+    <div class="sm:flex sm:items-end justify-between">
+        <div class="sm:flex-auto">
+            <h1 class="text-2xl font-semibold text-gray-900">관리자 회원 관리</h1>
+            <p class="mt-2 text-base text-gray-700">시스템에서 지원하는 관리자 회원 정보를 수정합니다. 관리자 회원명, 이메일, 타입, 상태 등을 변경할 수 있습니다.</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <x-ui::button-light href="{{ route($route.'index') }}">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                회원 목록
+            </x-ui::button-light>
+            <button type="button" 
+                    id="delete-btn"
+                    data-delete-route="{{ route('admin.admin.users.destroy', $user->id) }}"
+                    class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                삭제
+            </button>
+        </div>
+    </div>
+</div>
+@endsection
+
 @section('content')
     <div class="pt-2 pb-4">
-        <div class="w-full">
-            <div class="sm:flex sm:items-end justify-between">
-                <div class="sm:flex-auto">
-                    <h1 class="text-2xl font-semibold text-gray-900">관리자 회원 관리</h1>
-                    <p class="mt-2 text-base text-gray-700">시스템에서 지원하는 관리자 회원 정보를 수정합니다. 관리자 회원명, 이메일, 타입, 상태 등을 변경할 수 있습니다.</p>
-                </div>
-                <div class="mt-4 sm:mt-0">
-                    <x-ui::button-light href="{{ route($route.'index') }}">
-                        <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        회원 목록
-                    </x-ui::button-light>
-                    <button type="button" 
-                            id="delete-btn"
-                            data-delete-route="{{ route('admin.admin.users.destroy', $user->id) }}"
-                            class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        삭제
-                    </button>
-                </div>
-            </div>
-        </div>
+        
         
         {{-- 통합된 알림 메시지 --}}
         @includeIf('jiny-admin::users.alerts')

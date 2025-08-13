@@ -11,14 +11,53 @@ use Illuminate\Support\Facades\DB;
 use Jiny\Admin\App\Models\Admin2FALog;
 use Jiny\Admin\App\Models\AdminUser;
 
+/**
+ * Admin2FALogController
+ *
+ * 관리자 2FA(2단계 인증) 로그 관리 컨트롤러
+ * AdminResourceController를 상속하여 템플릿 메소드 패턴으로 구현
+ * 
+ * 2단계 인증 과정의 보안 로그를 관리:
+ * - 2FA 인증 시도 및 결과 추적
+ * - 보안 이벤트 모니터링 및 분석
+ * - 관리자별 2FA 사용 패턴 분석
+ * - 보안 위협 탐지 및 대응
+ *
+ * @package Jiny\Admin\App\Http\Controllers\Admin
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ *
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/Admin2FALog.md
+ *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 2FA 로그 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/Admin2FALogTest.php
+ * ```
+ */
 class Admin2FALogController extends AdminResourceController
 {
-    protected $filterable = ['admin_user_id', 'action', 'status', 'ip_address'];
+    // 뷰 경로 변수 정의
+    public $indexPath = 'jiny-admin::admin.user_2fa_logs.index';
+    public $createPath = 'jiny-admin::admin.user_2fa_logs.create';
+    public $editPath = 'jiny-admin::admin.user_2fa_logs.edit';
+    public $showPath = 'jiny-admin::admin.user_2fa_logs.show';
+
+    // 필터링 및 정렬 관련 설정
+    protected $filterable = ['admin_user_id', 'action', 'status', 'ip_address', 'search', 'date_from', 'date_to'];
     protected $validFilters = [
         'admin_user_id' => 'string|uuid',
         'action' => 'string|max:255',
         'status' => 'in:success,fail',
         'ip_address' => 'string|max:45',
+        'search' => 'string',
+        'date_from' => 'date',
+        'date_to' => 'date'
     ];
     protected $sortableColumns = ['id', 'admin_user_id', 'action', 'status', 'ip_address', 'created_at'];
 
@@ -32,6 +71,9 @@ class Admin2FALogController extends AdminResourceController
      */
     protected $logTableName = 'admin_2fa_logs';
 
+    /**
+     * 생성자
+     */
     public function __construct()
     {
         parent::__construct();
@@ -39,6 +81,7 @@ class Admin2FALogController extends AdminResourceController
 
     /**
      * 테이블 이름 반환
+     * Activity Log 테이블 이름 반환
      */
     protected function getTableName()
     {
@@ -47,6 +90,7 @@ class Admin2FALogController extends AdminResourceController
 
     /**
      * 모듈 이름 반환
+     * Activity Log 모듈 이름 반환
      */
     protected function getModuleName()
     {
@@ -55,26 +99,31 @@ class Admin2FALogController extends AdminResourceController
 
     /**
      * 2FA 로그 목록 조회 (템플릿 메소드 구현)
+     * 2FA 인증 시도 및 결과를 관리자별로 필터링하여 표시
      */
     protected function _index(Request $request): View
     {
         $query = Admin2FALog::with('adminUser');
         $filters = $this->getFilterParameters($request);
-        $query = $this->applyFilter($filters, $query, []);
+        $query = $this->applyFilter($filters, $query, ['search']);
         
         $sortField = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');
+        
+        // 유효한 정렬 필드와 방향 검증
+        if (!in_array($sortField, $this->sortableColumns)) {
+            $sortField = 'created_at';
+        }
+        if (!in_array(strtolower($sortDirection), ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
         $query->orderBy($sortField, $sortDirection);
 
         $rows = $query->paginate(15);
 
-        // 통계 데이터
-        $stats = [
-            'total_logs' => Admin2FALog::count(),
-            'success_logs' => Admin2FALog::where('status', 'success')->count(),
-            'fail_logs' => Admin2FALog::where('status', 'fail')->count(),
-            'today_logs' => Admin2FALog::whereDate('created_at', today())->count(),
-        ];
+        // 통계 데이터 추가
+        $stats = $this->get2FAStats();
 
         // 액션별 통계
         $actionStats = Admin2FALog::select('action', DB::raw('count(*) as count'))
@@ -87,7 +136,7 @@ class Admin2FALogController extends AdminResourceController
             ->orderBy('name')
             ->get();
 
-        return view('jiny-admin::admin.user_2fa_logs.index', [
+        return view($this->indexPath, [
             'rows' => $rows,
             'filters' => $filters,
             'sort' => $sortField,
@@ -101,48 +150,11 @@ class Admin2FALogController extends AdminResourceController
     }
 
     /**
-     * 필터링 적용
-     */
-    protected function applyFilter($filters, $query, $likeFields = [])
-    {
-        // 기본 필터 적용
-        foreach ($this->filterable as $column) {
-            if (isset($filters[$column]) && $filters[$column] !== '') {
-                if (in_array($column, $likeFields)) {
-                    $query->where($column, 'like', "%{$filters[$column]}%");
-                } else {
-                    $query->where($column, $filters[$column]);
-                }
-            }
-        }
-
-        // 검색어(부분일치) 별도 처리
-        if (isset($filters['search']) && $filters['search'] !== '') {
-            $query->where(function($q) use ($filters) {
-                $q->where('message', 'like', "%{$filters['search']}%")
-                  ->orWhere('ip_address', 'like', "%{$filters['search']}%")
-                  ->orWhere('user_agent', 'like', "%{$filters['search']}%");
-            });
-        }
-
-        // 날짜 필터
-        if (isset($filters['date_from']) && $filters['date_from'] !== '') {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
-        }
-
-        if (isset($filters['date_to']) && $filters['date_to'] !== '') {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
-        }
-
-        return $query;
-    }
-
-    /**
      * 2FA 로그 생성 폼 (템플릿 메소드 구현)
      */
     protected function _create(Request $request): View
     {
-        return view('jiny-admin::admin.user_2fa_logs.create', [
+        return view($this->createPath, [
             'route' => 'admin.admin.user-2fa-logs.',
             'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
@@ -180,7 +192,7 @@ class Admin2FALogController extends AdminResourceController
     protected function _show(Request $request, $id): View
     {
         $log = Admin2FALog::with('adminUser')->findOrFail($id);
-        return view('jiny-admin::admin.user_2fa_logs.show', [
+        return view($this->showPath, [
             'route' => 'admin.admin.user-2fa-logs.',
             'log' => $log,
             'errors' => new \Illuminate\Support\ViewErrorBag()
@@ -193,7 +205,7 @@ class Admin2FALogController extends AdminResourceController
     protected function _edit(Request $request, $id): View
     {
         $log = Admin2FALog::findOrFail($id);
-        return view('jiny-admin::admin.user_2fa_logs.edit', [
+        return view($this->editPath, [
             'route' => 'admin.admin.user-2fa-logs.',
             'log' => $log,
             'errors' => new \Illuminate\Support\ViewErrorBag()
@@ -288,6 +300,7 @@ class Admin2FALogController extends AdminResourceController
 
     /**
      * 2FA 로그 통계
+     * 2FA 인증 시도 및 성공률 등 상세 통계 제공
      */
     public function stats(Request $request): View
     {
@@ -336,6 +349,7 @@ class Admin2FALogController extends AdminResourceController
 
     /**
      * 2FA 로그 내보내기
+     * 2FA 로그를 CSV 형태로 내보내기
      */
     public function export(Request $request): JsonResponse
     {
@@ -380,6 +394,9 @@ class Admin2FALogController extends AdminResourceController
 
             fclose($file);
 
+            // Activity Log 기록
+            $this->logActivity('export', '2FA 로그 내보내기', null, ['filename' => $filename]);
+
             return response()->json([
                 'success' => true,
                 'message' => '로그가 성공적으로 내보내졌습니다.',
@@ -407,8 +424,18 @@ class Admin2FALogController extends AdminResourceController
         $query = Admin2FALog::with('adminUser');
         $filters = $this->getFilterParameters($request);
         $query = $this->applyFilter($filters, $query, []);
+        
         $sortField = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');
+        
+        // 유효한 정렬 필드와 방향 검증
+        if (!in_array($sortField, $this->sortableColumns)) {
+            $sortField = 'created_at';
+        }
+        if (!in_array(strtolower($sortDirection), ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
         $query->orderBy($sortField, $sortDirection);
         $filename = '2fa_logs_' . date('Ymd_His') . '.csv';
         $columns = [
@@ -438,6 +465,7 @@ class Admin2FALogController extends AdminResourceController
 
     /**
      * 일괄 삭제
+     * 선택된 2FA 로그들을 일괄 삭제
      */
     public function bulkDelete(Request $request): JsonResponse
     {
@@ -468,6 +496,7 @@ class Admin2FALogController extends AdminResourceController
 
     /**
      * 로그 정리 (오래된 로그 삭제)
+     * 지정된 기간 이전의 2FA 로그를 정리
      */
     public function cleanup(Request $request): JsonResponse
     {
@@ -498,6 +527,62 @@ class Admin2FALogController extends AdminResourceController
                 'message' => '로그 정리 중 오류가 발생했습니다.'
             ], 500);
         }
+    }
+
+    /**
+     * 2FA 통계 데이터 조회
+     */
+    private function get2FAStats()
+    {
+        return [
+            'total_logs' => Admin2FALog::count(),
+            'success_logs' => Admin2FALog::where('status', 'success')->count(),
+            'fail_logs' => Admin2FALog::where('status', 'fail')->count(),
+            'today_logs' => Admin2FALog::whereDate('created_at', today())->count(),
+            'this_week' => Admin2FALog::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'unique_users' => Admin2FALog::distinct('admin_user_id')->count(),
+            'recent_activity' => Admin2FALog::with('adminUser')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+        ];
+    }
+
+    /**
+     * 필터링 적용
+     */
+    protected function applyFilter(array $filters, $query, array $likeFields = []): object
+    {
+        // 기본 필터 적용
+        foreach ($this->filterable as $column) {
+            if (isset($filters[$column]) && $filters[$column] !== '') {
+                if (in_array($column, $likeFields)) {
+                    $query->where($column, 'like', "%{$filters[$column]}%");
+                } else {
+                    $query->where($column, $filters[$column]);
+                }
+            }
+        }
+
+        // 검색어(부분일치) 별도 처리
+        if (isset($filters['search']) && $filters['search'] !== '') {
+            $query->where(function($q) use ($filters) {
+                $q->where('message', 'like', "%{$filters['search']}%")
+                  ->orWhere('ip_address', 'like', "%{$filters['search']}%")
+                  ->orWhere('user_agent', 'like', "%{$filters['search']}%");
+            });
+        }
+
+        // 날짜 필터
+        if (isset($filters['date_from']) && $filters['date_from'] !== '') {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (isset($filters['date_to']) && $filters['date_to'] !== '') {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        return $query;
     }
 
     /**

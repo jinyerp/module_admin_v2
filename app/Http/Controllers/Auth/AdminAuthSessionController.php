@@ -20,14 +20,47 @@ use Jiny\Admin\App\Models\AdminUserLog;
  * 
  * 체인 형태의 로그인 검사 시스템을 구현하여 보안성을 강화합니다.
  * 각 검사 단계는 독립적인 private 함수로 분리되어 있어 유지보수가 용이합니다.
+ * 
+ * @package Jiny\Admin\App\Http\Controllers\Auth
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ * 
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/AdminAuth.md
+ * 
+ * 테스트 파일 작성 시 참조하세요.
+ * @test jiny/admin/tests/Feature/Auth/AdminAuthSessionTest.php
+ * 
+ * 관련 라우트 정보:
+ * @route jiny/admin/routes/web.php - admin.login.store, admin.login.ajax
  */
 class AdminAuthSessionController extends Controller
 {
     /**
+     * 뷰 경로 변수들
+     */
+    protected string $loginView = 'jiny-admin::auth.login';
+    protected string $dashboardView = 'jiny-admin::dashboard.index';
+    protected string $twoFactorChallengeView = 'jiny-admin::auth.auth_2fa_challenge';
+
+    /**
      * 로그인 처리 메인 메서드
      * 
-     * @param Request $request
+     * 일반 웹 요청과 AJAX 요청을 구분하여 적절한 응답을 반환합니다.
+     * 체인 형태의 로그인 검사 시스템을 통해 보안성을 강화합니다.
+     * 
+     * @param Request $request HTTP 요청 객체
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     * 
+     * @route admin.login.store (POST /admin/login)
+     * @middleware web
+     * 
+     * 동작 과정:
+     * 1. AJAX 요청 여부 확인
+     * 2. 체인 형태의 로그인 검사 실행
+     * 3. 성공/실패에 따른 응답 반환
      */
     public function login(Request $request)
     {
@@ -40,8 +73,19 @@ class AdminAuthSessionController extends Controller
     /**
      * AJAX 로그인 처리
      * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * AJAX 요청을 위한 전용 로그인 처리 메서드입니다.
+     * JSON 형태의 응답을 반환하여 프론트엔드에서 처리할 수 있습니다.
+     * 
+     * @param Request $request HTTP 요청 객체
+     * @return \Illuminate\Http\JsonResponse JSON 응답
+     * 
+     * @route admin.login.ajax (POST /admin/login/ajax)
+     * @middleware web
+     * 
+     * 동작 과정:
+     * 1. AJAX 요청으로 간주
+     * 2. 체인 형태의 로그인 검사 실행
+     * 3. JSON 형태의 응답 반환
      */
     public function loginAjax(Request $request)
     {
@@ -52,10 +96,22 @@ class AdminAuthSessionController extends Controller
      * 체인 형태의 로그인 처리 시스템
      * 
      * 각 검사 단계를 순차적으로 실행하여 모든 검사를 통과해야 로그인이 성공합니다.
+     * 보안성을 강화하기 위해 단계별 검증을 수행합니다.
      * 
-     * @param Request $request
-     * @param bool $isAjax
+     * @param Request $request HTTP 요청 객체
+     * @param bool $isAjax AJAX 요청 여부
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     * 
+     * 동작 과정:
+     * 1. 기본 입력 검증 (이메일, 비밀번호)
+     * 2. 시스템 상태 검사 (점검 모드, DB 연결)
+     * 3. 로그인 시도 제한 검사 (브루트 포스 방지)
+     * 4. 사용자 계정 검증 (존재 여부)
+     * 5. 비밀번호 검증 (해시 비교)
+     * 6. 계정 상태 검증 (활성화, 이메일 인증)
+     * 7. 로그인 성공 처리 (세션, 로그)
+     * 8. 2FA 검증 (필요시)
+     * 9. 최종 리다이렉트 처리
      */
     private function processLoginChain(Request $request, bool $isAjax)
     {
@@ -125,8 +181,15 @@ class AdminAuthSessionController extends Controller
     /**
      * 1단계: 기본 입력 검증
      * 
-     * @param Request $request
-     * @return array
+     * 로그인 폼에서 전송된 이메일과 비밀번호의 기본적인 유효성을 검사합니다.
+     * 
+     * @param Request $request HTTP 요청 객체
+     * @return array 검증 결과 (success: bool, credentials: array|message: string)
+     * 
+     * 동작 과정:
+     * 1. 이메일과 비밀번호 필수 여부 확인
+     * 2. 이메일 형식 검증
+     * 3. 비밀번호 최소 길이 검증
      */
     private function validateLoginInput(Request $request): array
     {
@@ -151,8 +214,15 @@ class AdminAuthSessionController extends Controller
     /**
      * 2단계: 시스템 상태 검사
      * 
-     * @param Request $request
-     * @return array
+     * 시스템 점검 모드와 데이터베이스 연결 상태를 확인합니다.
+     * 
+     * @param Request $request HTTP 요청 객체
+     * @return array 검사 결과 (success: bool, message: string)
+     * 
+     * 동작 과정:
+     * 1. 시스템 점검 모드 확인
+     * 2. 데이터베이스 연결 상태 확인
+     * 3. 오류 발생 시 로그 기록
      */
     private function checkSystemStatus(Request $request): array
     {
@@ -184,8 +254,15 @@ class AdminAuthSessionController extends Controller
     /**
      * 3단계: 로그인 시도 제한 검사
      * 
-     * @param string $email
-     * @return array
+     * 브루트 포스 공격을 방지하기 위해 로그인 시도 횟수를 제한합니다.
+     * 
+     * @param string $email 사용자 이메일
+     * @return array 검사 결과 (success: bool, message: string)
+     * 
+     * 동작 과정:
+     * 1. 캐시에서 로그인 시도 횟수 조회
+     * 2. 최대 시도 횟수 초과 시 잠금 시간 확인
+     * 3. 잠금 시간이 지났으면 카운터 초기화
      */
     private function checkLoginAttempts(string $email): array
     {
@@ -217,8 +294,14 @@ class AdminAuthSessionController extends Controller
     /**
      * 4단계: 사용자 계정 검증
      * 
-     * @param string $email
-     * @return array
+     * 데이터베이스에서 해당 이메일의 관리자 계정이 존재하는지 확인합니다.
+     * 
+     * @param string $email 사용자 이메일
+     * @return array 검증 결과 (success: bool, admin: AdminUser|message: string)
+     * 
+     * 동작 과정:
+     * 1. 이메일로 관리자 계정 조회
+     * 2. 계정 존재 여부 확인
      */
     private function validateUserAccount(string $email): array
     {
@@ -240,9 +323,16 @@ class AdminAuthSessionController extends Controller
     /**
      * 5단계: 비밀번호 검증
      * 
-     * @param array $credentials
-     * @param AdminUser $admin
-     * @return array
+     * 입력된 비밀번호와 저장된 해시를 비교하여 인증을 수행합니다.
+     * 
+     * @param array $credentials 인증 정보 (email, password)
+     * @param AdminUser $admin 관리자 사용자 객체
+     * @return array 검증 결과 (success: bool, message: string)
+     * 
+     * 동작 과정:
+     * 1. Laravel Auth 가드를 사용한 인증 시도
+     * 2. 실패 시 해시 직접 검증 (추가 보안)
+     * 3. 세션 문제 등 기타 오류 처리
      */
     private function validatePassword(array $credentials, AdminUser $admin): array
     {
@@ -269,8 +359,15 @@ class AdminAuthSessionController extends Controller
     /**
      * 6단계: 계정 상태 검증
      * 
-     * @param AdminUser $admin
-     * @return array
+     * 관리자 계정의 활성화 상태와 이메일 인증 상태를 확인합니다.
+     * 
+     * @param AdminUser $admin 관리자 사용자 객체
+     * @return array 검증 결과 (success: bool, message: string)
+     * 
+     * 동작 과정:
+     * 1. 계정 상태 확인 (active, inactive, suspended, pending)
+     * 2. 이메일 인증 필요 여부 확인
+     * 3. 상태별 적절한 오류 메시지 반환
      */
     private function validateAccountStatus(AdminUser $admin): array
     {
@@ -304,10 +401,19 @@ class AdminAuthSessionController extends Controller
     /**
      * 7단계: 로그인 성공 처리
      * 
-     * @param Request $request
-     * @param AdminUser $admin
-     * @param array $loginData
-     * @return array
+     * 로그인 성공 시 세션 정보 업데이트, 로그 기록, 데이터베이스 저장을 수행합니다.
+     * 
+     * @param Request $request HTTP 요청 객체
+     * @param AdminUser $admin 관리자 사용자 객체
+     * @param array $loginData 로그인 관련 데이터
+     * @return array 처리 결과 (success: bool, message: string)
+     * 
+     * 동작 과정:
+     * 1. 로그인 시도 카운터 초기화
+     * 2. 관리자 정보 업데이트 (마지막 로그인 시간, 로그인 횟수)
+     * 3. 세션 데이터 업데이트
+     * 4. 데이터베이스에 세션 정보 저장
+     * 5. 로그인 활동 기록
      */
     private function processSuccessfulLogin(Request $request, AdminUser $admin, array $loginData): array
     {
@@ -347,9 +453,16 @@ class AdminAuthSessionController extends Controller
     /**
      * 8단계: 2FA 인증 처리
      * 
-     * @param AdminUser $admin
-     * @param bool $isAjax
+     * 2FA가 활성화된 계정의 경우 적절한 페이지로 리다이렉트합니다.
+     * 
+     * @param AdminUser $admin 관리자 사용자 객체
+     * @param bool $isAjax AJAX 요청 여부
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse|null
+     * 
+     * 동작 과정:
+     * 1. 2FA 활성화 여부 확인
+     * 2. 2FA 설정 필요 여부 확인
+     * 3. 적절한 페이지로 리다이렉트
      */
     private function handleTwoFactorAuth(AdminUser $admin, bool $isAjax)
     {
@@ -389,10 +502,17 @@ class AdminAuthSessionController extends Controller
     /**
      * 9단계: 최종 리다이렉트 처리
      * 
-     * @param Request $request
-     * @param AdminUser $admin
-     * @param bool $isAjax
+     * 로그인 성공 후 적절한 페이지로 리다이렉트합니다.
+     * 
+     * @param Request $request HTTP 요청 객체
+     * @param AdminUser $admin 관리자 사용자 객체
+     * @param bool $isAjax AJAX 요청 여부
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     * 
+     * 동작 과정:
+     * 1. 세션에 저장된 intended_url 확인
+     * 2. intended_url이 있으면 해당 페이지로 리다이렉트
+     * 3. 없으면 기본 /admin 페이지로 리다이렉트
      */
     private function handleLoginRedirect(Request $request, AdminUser $admin, bool $isAjax)
     {
@@ -429,8 +549,13 @@ class AdminAuthSessionController extends Controller
     /**
      * AJAX 요청인지 확인
      * 
-     * @param Request $request
-     * @return bool
+     * @param Request $request HTTP 요청 객체
+     * @return bool AJAX 요청 여부
+     * 
+     * 동작 과정:
+     * 1. expectsJson() 메서드로 JSON 요청 확인
+     * 2. Accept 헤더로 JSON 확인
+     * 3. X-Requested-With 헤더로 AJAX 확인
      */
     private function isAjaxRequest(Request $request): bool
     {
@@ -442,8 +567,13 @@ class AdminAuthSessionController extends Controller
     /**
      * 로그인 데이터 준비
      * 
-     * @param Request $request
-     * @return array
+     * @param Request $request HTTP 요청 객체
+     * @return array 로그인 관련 데이터 (IP, User-Agent, 타임스탬프)
+     * 
+     * 동작 과정:
+     * 1. 클라이언트 IP 주소 추출
+     * 2. User-Agent 헤더 추출
+     * 3. 현재 시간 기록
      */
     private function prepareLoginData(Request $request): array
     {
@@ -458,9 +588,15 @@ class AdminAuthSessionController extends Controller
      * 세션 데이터 업데이트
      * Laravel의 기본 Auth 시스템을 사용하여 admin 가드로 로그인
      * 
-     * @param Request $request
-     * @param AdminUser $admin
+     * @param Request $request HTTP 요청 객체
+     * @param AdminUser $admin 관리자 사용자 객체
      * @return void
+     * 
+     * 동작 과정:
+     * 1. 세션 재생성 (보안 강화)
+     * 2. admin 가드로 로그인
+     * 3. 추가 세션 데이터 저장
+     * 4. 로그 기록
      */
     private function updateSessionData(Request $request, AdminUser $admin): void
     {
@@ -511,10 +647,15 @@ class AdminAuthSessionController extends Controller
     /**
      * 데이터베이스에 세션 정보 저장
      * 
-     * @param Request $request
-     * @param AdminUser $admin
-     * @param array $loginData
+     * @param Request $request HTTP 요청 객체
+     * @param AdminUser $admin 관리자 사용자 객체
+     * @param array $loginData 로그인 관련 데이터
      * @return void
+     * 
+     * 동작 과정:
+     * 1. 기존 활성 세션 비활성화 (중복 방지)
+     * 2. 만료된 세션 정리
+     * 3. 새로운 세션 정보 저장
      */
     private function saveSessionToDatabase(Request $request, AdminUser $admin, array $loginData): void
     {
@@ -560,6 +701,11 @@ class AdminAuthSessionController extends Controller
      * 만료된 세션들을 정리
      * 
      * @return void
+     * 
+     * 동작 과정:
+     * 1. 세션 수명 설정값 조회
+     * 2. 만료 시간 계산
+     * 3. 만료된 세션 비활성화
      */
     private function cleanupExpiredSessions(): void
     {
@@ -579,8 +725,13 @@ class AdminAuthSessionController extends Controller
     /**
      * 로그인 시도 횟수 증가
      * 
-     * @param string $email
+     * @param string $email 사용자 이메일
      * @return void
+     * 
+     * 동작 과정:
+     * 1. 캐시에서 현재 시도 횟수 조회
+     * 2. 최대 시도 횟수 도달 시 잠금 설정
+     * 3. 시도 횟수 증가 및 캐시 저장
      */
     private function incrementLoginAttempts(string $email): void
     {
@@ -600,8 +751,12 @@ class AdminAuthSessionController extends Controller
     /**
      * 로그인 시도 횟수 초기화
      * 
-     * @param string $email
+     * @param string $email 사용자 이메일
      * @return void
+     * 
+     * 동작 과정:
+     * 1. 로그인 시도 횟수 캐시 삭제
+     * 2. 잠금 상태 캐시 삭제
      */
     private function clearLoginAttempts(string $email): void
     {
@@ -612,8 +767,13 @@ class AdminAuthSessionController extends Controller
     /**
      * 로그인 위치 정보 가져오기
      * 
-     * @param string $ip
-     * @return string|null
+     * @param string $ip IP 주소
+     * @return string|null 위치 정보 (도시, 국가)
+     * 
+     * 동작 과정:
+     * 1. Location 클래스 존재 여부 확인
+     * 2. IP 주소로 위치 정보 조회
+     * 3. 도시와 국가 정보 조합
      */
     private function getLoginLocation(string $ip): ?string
     {
@@ -632,8 +792,13 @@ class AdminAuthSessionController extends Controller
     /**
      * 디바이스 정보 가져오기
      * 
-     * @param string $userAgent
-     * @return string|null
+     * @param string $userAgent User-Agent 문자열
+     * @return string|null 디바이스 정보 (디바이스/플랫폼/브라우저)
+     * 
+     * 동작 과정:
+     * 1. Jenssegers\Agent 클래스 존재 여부 확인
+     * 2. User-Agent 파싱
+     * 3. 디바이스, 플랫폼, 브라우저 정보 조합
      */
     private function getDeviceInfo(string $userAgent): ?string
     {
@@ -650,8 +815,12 @@ class AdminAuthSessionController extends Controller
     /**
      * 2FA 설정 메시지 생성
      * 
-     * @param AdminUser $admin
-     * @return string
+     * @param AdminUser $admin 관리자 사용자 객체
+     * @return string 2FA 설정 안내 메시지
+     * 
+     * 동작 과정:
+     * 1. 기본 2FA 설정 안내 메시지
+     * 2. 최초 super 관리자인 경우 특별한 안내
      */
     private function getTwoFactorSetupMessage(AdminUser $admin): string
     {
@@ -668,11 +837,15 @@ class AdminAuthSessionController extends Controller
     /**
      * 로그인/로그아웃 기록 저장
      * 
-     * @param string|null $adminUserId
-     * @param array $data
-     * @param string $status
-     * @param string $msg
+     * @param string|null $adminUserId 관리자 사용자 ID
+     * @param array $data 로그인 관련 데이터
+     * @param string $status 상태 (success/fail)
+     * @param string $msg 메시지
      * @return void
+     * 
+     * 동작 과정:
+     * 1. 관리자 ID가 있는 경우에만 로그 생성
+     * 2. AdminUserLog 테이블에 로그인 활동 기록
      */
     private function logLoginActivity($adminUserId, array $data, string $status, string $msg): void
     {
@@ -691,10 +864,15 @@ class AdminAuthSessionController extends Controller
     /**
      * 실패 응답 처리
      * 
-     * @param string $message
-     * @param bool $isAjax
-     * @param int $statusCode
+     * @param string $message 오류 메시지
+     * @param bool $isAjax AJAX 요청 여부
+     * @param int $statusCode HTTP 상태 코드
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     * 
+     * 동작 과정:
+     * 1. AJAX 요청인 경우 JSON 응답 반환
+     * 2. 일반 요청인 경우 백 페이지로 리다이렉트
+     * 3. 오류 메시지를 세션에 저장
      */
     private function handleFailure(string $message, bool $isAjax, int $statusCode = 400)
     {
@@ -712,8 +890,12 @@ class AdminAuthSessionController extends Controller
     /**
      * 오류 메시지에 따른 오류 코드 반환
      * 
-     * @param string $message
-     * @return string
+     * @param string $message 오류 메시지
+     * @return string 오류 코드
+     * 
+     * 동작 과정:
+     * 1. 메시지 내용에 따른 오류 코드 분류
+     * 2. 프론트엔드에서 처리할 수 있는 표준화된 오류 코드 반환
      */
     private function getErrorCode(string $message): string
     {

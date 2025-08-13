@@ -2,7 +2,7 @@
 
 namespace Jiny\Admin\App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use Jiny\Admin\App\Http\Controllers\AdminResourceController;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -12,55 +12,148 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 
-class AdminSystemMaintenanceLogController extends Controller
+/**
+ * AdminSystemMaintenanceLogController
+ *
+ * 관리자 시스템 유지보수 로그 관리 컨트롤러
+ * AdminResourceController를 상속하여 템플릿 메소드 패턴으로 구현
+ * 
+ * 시스템 유지보수 작업의 계획, 실행, 완료 과정을 추적하고 기록:
+ * - 유지보수 일정 관리 및 작업 진행 상황 모니터링
+ * - 다운타임 계획 및 영향도 분석
+ * - 유지보수 작업 통계 및 성능 지표 분석
+ *
+ * @package Jiny\Admin\App\Http\Controllers\Admin
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ *
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/AdminSystemMaintenanceLog.md
+ *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 시스템 유지보수 로그 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminSystemMaintenanceLogTest.php
+ * ```
+ */
+class AdminSystemMaintenanceLogController extends AdminResourceController
 {
-    /**
-     * 유지보수 로그 목록 페이지
-     */
-    public function index(Request $request): View
-    {
-        $query = SystemMaintenanceLog::with(['performedBy']);
+    // 뷰 경로 변수 정의
+    public $indexPath = 'jiny-admin::admin.system_maintenance_logs.index';
+    public $createPath = 'jiny-admin::admin.system_maintenance_logs.create';
+    public $editPath = 'jiny-admin::admin.system_maintenance_logs.edit';
+    public $showPath = 'jiny-admin::admin.system_maintenance_logs.show';
 
-        // 검색 필터 적용
-        $query = $this->applyFilters($query, $request);
+    // 필터링 및 정렬 관련 설정
+    protected $filterable = ['maintenance_type', 'status', 'priority', 'requires_downtime', 'search', 'start_date', 'end_date'];
+    protected $validFilters = [
+        'maintenance_type' => 'string|max:100',
+        'status' => 'string|max:50',
+        'priority' => 'string|max:50',
+        'requires_downtime' => 'boolean',
+        'search' => 'string',
+        'start_date' => 'date',
+        'end_date' => 'date'
+    ];
+    protected $sortableColumns = ['created_at', 'title', 'maintenance_type', 'status', 'priority', 'scheduled_start', 'actual_start', 'duration_minutes'];
+
+    /**
+     * 로깅 활성화
+     */
+    protected $activeLog = true;
+
+    /**
+     * 로그 테이블명
+     */
+    protected $logTableName = 'system_maintenance_logs';
+
+    /**
+     * 생성자
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * 테이블 이름 반환
+     * System Maintenance Log 테이블 이름 반환
+     */
+    protected function getTableName()
+    {
+        return 'system_maintenance_logs';
+    }
+
+    /**
+     * 모듈 이름 반환
+     * System Maintenance Log 모듈 이름 반환
+     */
+    protected function getModuleName()
+    {
+        return 'admin.system-maintenance-logs';
+    }
+
+    /**
+     * 유지보수 로그 목록 페이지 (템플릿 메소드 구현)
+     */
+    protected function _index(Request $request): View
+    {
+        $query = SystemMaintenanceLog::with(['initiatedBy', 'completedBy']);
+
+        // 필터 적용
+        $filters = $this->getFilterParameters($request);
+        $query = $this->applyFilter($filters, $query, ['search']);
 
         // 정렬 적용
-        $query = $this->applySorting($query, $request);
+        $sortField = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
 
         $maintenanceLogs = $query->paginate(20);
 
         // 통계 데이터
-        $stats = $this->getStats($request);
+        $stats = $this->getMaintenanceStats();
 
-        return view('jiny-admin::admin.system_maintenance_logs.index', [
+        return view($this->indexPath, [
             'rows' => $maintenanceLogs,
             'maintenanceLogs' => $maintenanceLogs,
+            'filters' => $filters,
+            'sort' => $sortField,
+            'dir' => $sortDirection,
+            'route' => 'admin.system-maintenance-logs.',
             'stats' => $stats,
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
             'statuses' => SystemMaintenanceLog::getStatuses(),
             'priorities' => SystemMaintenanceLog::getPriorities(),
+            'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
 
     /**
-     * 유지보수 로그 생성 폼
+     * 유지보수 로그 생성 폼 (템플릿 메소드 구현)
      */
-    public function create(): View
+    protected function _create(Request $request): View
     {
         $admins = AdminUser::where('is_active', true)->get();
 
-        return view('jiny-admin::admin.system_maintenance_logs.create', [
+        return view($this->createPath, [
+            'route' => 'admin.system-maintenance-logs.',
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
             'statuses' => SystemMaintenanceLog::getStatuses(),
             'priorities' => SystemMaintenanceLog::getPriorities(),
             'admins' => $admins,
+            'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
 
     /**
-     * 유지보수 로그 저장
+     * 유지보수 로그 저장 (템플릿 메소드 구현)
      */
-    public function store(Request $request): RedirectResponse
+    protected function _store(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'maintenance_type' => 'required|string|in:' . implode(',', array_keys(SystemMaintenanceLog::getMaintenanceTypes())),
@@ -74,56 +167,72 @@ class AdminSystemMaintenanceLogController extends Controller
             'duration_minutes' => 'nullable|integer|min:0',
             'notes' => 'nullable|string',
             'impact_assessment' => 'nullable|string',
-            'initiated_by' => 'nullable|exists:admin_emails,id',
-            'completed_by' => 'nullable|exists:admin_emails,id',
+            'initiated_by' => 'nullable|exists:admin_users,id',
+            'completed_by' => 'nullable|exists:admin_users,id',
             'requires_downtime' => 'boolean',
             'priority' => 'required|string|in:' . implode(',', array_keys(SystemMaintenanceLog::getPriorities())),
             'affected_services' => 'nullable|json',
             'metadata' => 'nullable|json',
         ]);
 
-        SystemMaintenanceLog::create($request->all());
+        $log = SystemMaintenanceLog::create($request->all());
 
-        return redirect()->route('admin.system-maintenance-logs.index')
-            ->with('success', '유지보수 로그가 성공적으로 생성되었습니다.');
-    }
+        // Activity Log 기록
+        $this->logActivity('create', '유지보수 로그 생성', $log->id, $request->all());
 
-    /**
-     * 유지보수 로그 상세 조회
-     */
-    public function show(SystemMaintenanceLog $systemMaintenanceLog): View
-    {
-        $systemMaintenanceLog->load(['initiatedBy', 'completedBy']);
-
-        return view('jiny-admin::admin.system_maintenance_logs.show', [
-            'maintenanceLog' => $systemMaintenanceLog,
-            'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
-            'statuses' => SystemMaintenanceLog::getStatuses(),
-            'priorities' => SystemMaintenanceLog::getPriorities(),
+        return response()->json([
+            'success' => true,
+            'message' => '유지보수 로그가 성공적으로 생성되었습니다.',
+            'log' => $log
         ]);
     }
 
     /**
-     * 유지보수 로그 수정 폼
+     * 유지보수 로그 상세 조회 (템플릿 메소드 구현)
      */
-    public function edit(SystemMaintenanceLog $systemMaintenanceLog): View
+    protected function _show(Request $request, $id): View
     {
+        $systemMaintenanceLog = SystemMaintenanceLog::with(['initiatedBy', 'completedBy'])->findOrFail($id);
+
+        return view($this->showPath, [
+            'route' => 'admin.system-maintenance-logs.',
+            'maintenanceLog' => $systemMaintenanceLog,
+            'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
+            'statuses' => SystemMaintenanceLog::getStatuses(),
+            'priorities' => SystemMaintenanceLog::getPriorities(),
+            'errors' => new \Illuminate\Support\ViewErrorBag()
+        ]);
+    }
+
+    /**
+     * 유지보수 로그 수정 폼 (템플릿 메소드 구현)
+     */
+    protected function _edit(Request $request, $id): View
+    {
+        $systemMaintenanceLog = SystemMaintenanceLog::findOrFail($id);
         $admins = AdminUser::where('is_active', true)->get();
 
-        return view('jiny-admin::admin.system_maintenance_logs.edit', [
+        return view($this->editPath, [
+            'route' => 'admin.system-maintenance-logs.',
             'maintenanceLog' => $systemMaintenanceLog,
             'maintenanceTypes' => SystemMaintenanceLog::getMaintenanceTypes(),
             'statuses' => SystemMaintenanceLog::getStatuses(),
             'priorities' => SystemMaintenanceLog::getPriorities(),
             'admins' => $admins,
+            'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
 
     /**
-     * 유지보수 로그 업데이트
+     * 유지보수 로그 업데이트 (템플릿 메소드 구현)
      */
-    public function update(Request $request, SystemMaintenanceLog $systemMaintenanceLog): RedirectResponse
+    protected function _update(Request $request, $id): \Illuminate\Http\JsonResponse
     {
+        $systemMaintenanceLog = SystemMaintenanceLog::findOrFail($id);
+        
+        // 수정 전 데이터 가져오기 (Audit Log용)
+        $oldData = $systemMaintenanceLog->toArray();
+
         $request->validate([
             'maintenance_type' => 'required|string|in:' . implode(',', array_keys(SystemMaintenanceLog::getMaintenanceTypes())),
             'title' => 'required|string|max:255',
@@ -136,8 +245,8 @@ class AdminSystemMaintenanceLogController extends Controller
             'duration_minutes' => 'nullable|integer|min:0',
             'notes' => 'nullable|string',
             'impact_assessment' => 'nullable|string',
-            'initiated_by' => 'nullable|exists:admin_emails,id',
-            'completed_by' => 'nullable|exists:admin_emails,id',
+            'initiated_by' => 'nullable|exists:admin_users,id',
+            'completed_by' => 'nullable|exists:admin_users,id',
             'requires_downtime' => 'boolean',
             'priority' => 'required|string|in:' . implode(',', array_keys(SystemMaintenanceLog::getPriorities())),
             'affected_services' => 'nullable|json',
@@ -146,35 +255,67 @@ class AdminSystemMaintenanceLogController extends Controller
 
         $systemMaintenanceLog->update($request->all());
 
-        return redirect()->route('admin.system-maintenance-logs.index')
-            ->with('success', '유지보수 로그가 성공적으로 수정되었습니다.');
+        // Activity Log 기록
+        $this->logActivity('update', '유지보수 로그 수정', $systemMaintenanceLog->id, $request->all());
+
+        // Audit Log 기록
+        $this->logAudit('update', $oldData, $request->all(), '유지보수 로그 수정', $systemMaintenanceLog->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => '유지보수 로그가 성공적으로 수정되었습니다.',
+            'log' => $systemMaintenanceLog
+        ]);
     }
 
     /**
-     * 유지보수 로그 삭제
+     * 유지보수 로그 삭제 (템플릿 메소드 구현)
      */
-    public function destroy(SystemMaintenanceLog $systemMaintenanceLog): RedirectResponse
+    protected function _destroy(Request $request): \Illuminate\Http\JsonResponse
     {
+        $id = $request->get('id') ?? $request->route('id');
+        $systemMaintenanceLog = SystemMaintenanceLog::findOrFail($id);
+        
+        // 삭제 전 데이터 가져오기 (Audit Log용)
+        $oldData = $systemMaintenanceLog->toArray();
+        
         $systemMaintenanceLog->delete();
 
-        return redirect()->route('admin.system-maintenance-logs.index')
-            ->with('success', '유지보수 로그가 성공적으로 삭제되었습니다.');
+        // Activity Log 기록
+        $this->logActivity('delete', '유지보수 로그 삭제', $id, $oldData);
+
+        // Audit Log 기록
+        $this->logAudit('delete', $oldData, null, '유지보수 로그 삭제', $id);
+
+        return response()->json([
+            'success' => true,
+            'message' => '유지보수 로그가 성공적으로 삭제되었습니다.'
+        ]);
     }
 
     /**
      * 유지보수 로그 상태 변경
      */
-    public function updateStatus(Request $request, SystemMaintenanceLog $systemMaintenanceLog): RedirectResponse
+    public function updateStatus(Request $request, SystemMaintenanceLog $systemMaintenanceLog): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'status' => 'required|string|in:' . implode(',', array_keys(SystemMaintenanceLog::getStatuses())),
         ]);
 
+        $oldStatus = $systemMaintenanceLog->status;
         $systemMaintenanceLog->update(['status' => $request->status]);
 
+        // Activity Log 기록
+        $this->logActivity('status_update', '유지보수 로그 상태 변경', $systemMaintenanceLog->id, [
+            'old_status' => $oldStatus,
+            'new_status' => $request->status
+        ]);
+
         $statusText = SystemMaintenanceLog::getStatuses()[$request->status];
-        return redirect()->route('admin.system-maintenance-logs.index')
-            ->with('success', "유지보수 로그 상태가 '{$statusText}'로 변경되었습니다.");
+        return response()->json([
+            'success' => true,
+            'message' => "유지보수 로그 상태가 '{$statusText}'로 변경되었습니다."
+        ]);
     }
 
     /**
@@ -205,7 +346,7 @@ class AdminSystemMaintenanceLogController extends Controller
     /**
      * 유지보수 로그 일괄 삭제
      */
-    public function bulkDelete(Request $request): RedirectResponse
+    public function bulkDelete(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'selected_logs' => 'required|array',
@@ -214,8 +355,16 @@ class AdminSystemMaintenanceLogController extends Controller
 
         $count = SystemMaintenanceLog::whereIn('id', $request->selected_logs)->delete();
 
-        return redirect()->route('admin.system-maintenance-logs.index')
-            ->with('success', "{$count}개의 유지보수 로그가 성공적으로 삭제되었습니다.");
+        // Activity Log 기록
+        $this->logActivity('bulk_delete', '유지보수 로그 일괄 삭제', null, [
+            'deleted_count' => $count,
+            'deleted_ids' => $request->selected_logs
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count}개의 유지보수 로그가 성공적으로 삭제되었습니다."
+        ]);
     }
 
     /**
@@ -267,6 +416,12 @@ class AdminSystemMaintenanceLogController extends Controller
         }
 
         fclose($handle);
+
+        // Activity Log 기록
+        $this->logActivity('export', '유지보수 로그 내보내기', null, [
+            'filename' => $filename,
+            'exported_count' => $maintenanceLogs->count()
+        ]);
 
         return response()->download($filepath, $filename)->deleteFileAfterSend();
     }
@@ -340,26 +495,21 @@ class AdminSystemMaintenanceLogController extends Controller
     }
 
     /**
-     * 통계 데이터 조회
+     * 유지보수 로그 통계 데이터 조회
      */
-    private function getStats(Request $request)
+    private function getMaintenanceStats()
     {
-        $days = $request->get('days', 30);
-        $startDate = now()->subDays($days);
-
-        $query = SystemMaintenanceLog::where('created_at', '>=', $startDate);
-
-        // 검색 필터 적용
-        $query = $this->applyFilters($query, $request);
-
         return [
-            'total' => $query->count(),
-            'scheduled' => (clone $query)->where('status', 'scheduled')->count(),
-            'in_progress' => (clone $query)->where('status', 'in_progress')->count(),
-            'completed' => (clone $query)->where('status', 'completed')->count(),
-            'failed' => (clone $query)->where('status', 'failed')->count(),
-            'avg_duration' => (clone $query)->whereNotNull('duration_minutes')->avg('duration_minutes'),
-            'downtime_required' => (clone $query)->where('requires_downtime', true)->count(),
+            'total' => SystemMaintenanceLog::count(),
+            'scheduled' => SystemMaintenanceLog::where('status', 'scheduled')->count(),
+            'in_progress' => SystemMaintenanceLog::where('status', 'in_progress')->count(),
+            'completed' => SystemMaintenanceLog::where('status', 'completed')->count(),
+            'failed' => SystemMaintenanceLog::where('status', 'failed')->count(),
+            'avg_duration' => SystemMaintenanceLog::whereNotNull('duration_minutes')->avg('duration_minutes'),
+            'downtime_required' => SystemMaintenanceLog::where('requires_downtime', true)->count(),
+            'recent_stats' => SystemMaintenanceLog::getRecentStats(30),
+            'stats_by_type' => SystemMaintenanceLog::getStatsByType(),
+            'stats_by_priority' => SystemMaintenanceLog::getStatsByPriority(),
         ];
     }
 }

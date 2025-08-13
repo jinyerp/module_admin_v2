@@ -2,7 +2,6 @@
 
 namespace Jiny\Admin\App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -20,39 +19,122 @@ use Illuminate\Http\RedirectResponse;
  * - 성능 모니터링
  * - 보안 관련 정보 수집
  * - 에러 및 예외 상황 기록
+ * 
+ * @see docs/features/AdminSystemOperationLog.md
+ *  *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 시스템 유지보수 로그 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminSystemOperationLogTest.php
+ * ```
  */
-class AdminSystemOperationLogController extends Controller
+class AdminSystemOperationLogController extends AdminResourceController
 {
     /**
-     * 운영 로그 목록 페이지
+     * 뷰 경로 설정
+     */
+    protected string $indexPath = 'jiny-admin::admin.systems_operation_logs.index';
+    protected string $createPath = 'jiny-admin::admin.systems_operation_logs.create';
+    protected string $editPath = 'jiny-admin::admin.systems_operation_logs.edit';
+    protected string $showPath = 'jiny-admin::admin.systems_operation_logs.show';
+
+    /**
+     * 필터링 및 정렬 설정
+     */
+    protected bool $filterable = true;
+    protected array $validFilters = [
+        'search', 'operation_type', 'operation_name', 'performed_by_type',
+        'status', 'severity', 'date_from', 'date_to', 'ip_address', 'session_id'
+    ];
+    protected array $sortableColumns = [
+        'created_at', 'operation_name', 'operation_type', 'status',
+        'execution_time', 'severity', 'ip_address'
+    ];
+
+    /**
+     * 로깅 설정
+     */
+    protected bool $activeLog = true;
+    protected string $logTableName = 'system_operation_logs';
+
+    /**
+     * 생성자
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * 테이블명 반환
+     */
+    protected function getTableName(): string
+    {
+        return 'system_operation_logs';
+    }
+
+    /**
+     * 모듈명 반환
+     */
+    protected function getModuleName(): string
+    {
+        return 'system_operation_log';
+    }
+
+    /**
+     * 운영 로그 목록 페이지 (템플릿 메서드 패턴)
      */
     public function index(Request $request): View
     {
+        return $this->_index($request);
+    }
+
+    /**
+     * 운영 로그 목록 페이지 내부 구현
+     */
+    protected function _index(Request $request): View
+    {
         $query = SystemOperationLog::with(['performedBy', 'target']);
 
-        // 검색 필터 적용
-        $query = $this->applyFilters($query, $request);
+        // 필터 파라미터 가져오기
+        $filters = $this->getFilterParameters($request);
+
+        // 필터 적용
+        $query = $this->applyFilter($filters, $query, ['operation_name', 'ip_address', 'operation_type']);
 
         // 정렬 적용
         $query = $this->applySorting($query, $request);
 
         $logs = $query->paginate(20);
-        $rows = $logs; // $rows 변수를 $logs와 동일하게 설정
+        $rows = $logs;
 
         // 통계 데이터
-        $stats = $this->getStats($request);
+        $stats = $this->getOperationStats($request);
 
-        return view('jiny-admin::admin.systems_operation_logs.index', compact('logs', 'stats', 'rows'));
+        return view($this->indexPath, compact('logs', 'stats', 'rows'));
     }
 
     /**
-     * 운영 로그 상세 조회
+     * 운영 로그 상세 조회 (템플릿 메서드 패턴)
      */
     public function show(int $id): View
     {
+        return $this->_show($id);
+    }
+
+    /**
+     * 운영 로그 상세 조회 내부 구현
+     */
+    protected function _show(int $id): View
+    {
         $log = SystemOperationLog::with(['performedBy', 'target'])->findOrFail($id);
 
-        return view('jiny-admin::admin.systems_operation_logs.show', compact('log'));
+        // 활동 로그 기록
+        $this->logActivity('view', $id, 'system_operation_log');
+
+        return view($this->showPath, compact('log'));
     }
 
     /**
@@ -247,7 +329,7 @@ class AdminSystemOperationLogController extends Controller
      */
     public function stats(): View
     {
-        $stats = $this->getStats(request());
+        $stats = $this->getOperationStats(request());
         
         // 최근 운영 로그 10개 조회
         $recentLogs = SystemOperationLog::with(['performedBy', 'target'])
@@ -262,9 +344,17 @@ class AdminSystemOperationLogController extends Controller
     }
 
     /**
-     * 운영 로그 일괄 삭제
+     * 운영 로그 일괄 삭제 (템플릿 메서드 패턴)
      */
-    public function bulkDelete(Request $request): RedirectResponse
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        return $this->_bulkDelete($request);
+    }
+
+    /**
+     * 운영 로그 일괄 삭제 내부 구현
+     */
+    protected function _bulkDelete(Request $request): JsonResponse
     {
         $request->validate([
             'selected_logs' => 'required|array',
@@ -273,8 +363,17 @@ class AdminSystemOperationLogController extends Controller
 
         $count = SystemOperationLog::whereIn('id', $request->selected_logs)->delete();
 
-        return redirect()->route('admin.systems.operation-logs.index')
-            ->with('success', "{$count}개의 운영 로그가 성공적으로 삭제되었습니다.");
+        // 활동 로그 기록
+        $this->logActivity('bulk_delete', $count, 'system_operation_log', [
+            'deleted_count' => $count,
+            'selected_ids' => $request->selected_logs
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count}개의 운영 로그가 성공적으로 삭제되었습니다.",
+            'deleted_count' => $count
+        ]);
     }
 
     /**
@@ -284,8 +383,11 @@ class AdminSystemOperationLogController extends Controller
     {
         $query = SystemOperationLog::with(['performedBy', 'target']);
 
-        // 검색 필터 적용
-        $query = $this->applyFilters($query, $request);
+        // 필터 파라미터 가져오기
+        $filters = $this->getFilterParameters($request);
+
+        // 필터 적용
+        $query = $this->applyFilter($filters, $query, ['operation_name', 'ip_address', 'operation_type']);
 
         // 정렬 적용
         $query = $this->applySorting($query, $request);
@@ -330,70 +432,16 @@ class AdminSystemOperationLogController extends Controller
 
         fclose($handle);
 
+        // 활동 로그 기록
+        $this->logActivity('export', count($logs), 'system_operation_log', [
+            'exported_count' => count($logs),
+            'filename' => $filename
+        ]);
+
         return response()->download($filepath, $filename)->deleteFileAfterSend();
     }
 
-    /**
-     * 검색 필터 적용
-     */
-    private function applyFilters($query, Request $request)
-    {
-        // 운영 타입 필터
-        if ($request->filled('filter_operation_type')) {
-            $query->where('operation_type', $request->filter_operation_type);
-        }
 
-        // 운영명 필터
-        if ($request->filled('filter_operation_name')) {
-            $query->where('operation_name', 'like', '%' . $request->filter_operation_name . '%');
-        }
-
-        // 수행자 타입 필터
-        if ($request->filled('filter_performed_by_type')) {
-            $query->where('performed_by_type', $request->filter_performed_by_type);
-        }
-
-        // 상태 필터
-        if ($request->filled('filter_status')) {
-            $query->where('status', $request->filter_status);
-        }
-
-        // 중요도 필터
-        if ($request->filled('filter_severity')) {
-            $query->where('severity', $request->filter_severity);
-        }
-
-        // 날짜 범위 필터
-        if ($request->filled('filter_date_from')) {
-            $query->where('created_at', '>=', $request->filter_date_from);
-        }
-
-        if ($request->filled('filter_date_to')) {
-            $query->where('created_at', '<=', $request->filter_date_to . ' 23:59:59');
-        }
-
-        // IP 주소 필터
-        if ($request->filled('filter_ip_address')) {
-            $query->where('ip_address', 'like', '%' . $request->filter_ip_address . '%');
-        }
-
-        // 세션 ID 필터
-        if ($request->filled('filter_session_id')) {
-            $query->where('session_id', $request->filter_session_id);
-        }
-
-        // 검색어 필터
-        if ($request->filled('filter_search')) {
-            $search = $request->filter_search;
-            $query->where(function($q) use ($search) {
-                $q->where('operation_name', 'like', '%' . $search . '%')
-                  ->orWhere('ip_address', 'like', '%' . $search . '%')
-                  ->orWhere('operation_type', 'like', '%' . $search . '%');
-            });
-        }
-
-        return $query;
-    }
 
     /**
      * 정렬 적용
@@ -417,9 +465,9 @@ class AdminSystemOperationLogController extends Controller
     }
 
     /**
-     * 통계 데이터 조회
+     * 운영 로그 통계 데이터 조회
      */
-    private function getStats(Request $request)
+    private function getOperationStats(Request $request)
     {
         $days = $request->get('days', 30);
         $startDate = now()->subDays($days);

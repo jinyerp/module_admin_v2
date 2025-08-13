@@ -12,13 +12,51 @@ use Illuminate\Support\Facades\DB;
 use Jiny\Admin\App\Models\AdminUser;
 use Jiny\Admin\App\Models\AdminUserLog;
 
+/**
+ * AdminUserLogController
+ *
+ * 관리자 사용자 로그 관리 컨트롤러
+ * AdminResourceController를 상속하여 템플릿 메소드 패턴으로 구현
+ * 
+ * AdminUser와 밀접한 연관성을 가짐:
+ * - AdminUserLog.admin_user_id 필드가 AdminUser.id와 연결
+ * - 로그별 관리자 정보 표시 및 통계
+ * - 관리자별 로그 분석 및 모니터링
+ *
+ * @package Jiny\Admin\App\Http\Controllers\Admin
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ *
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/AdminUserLog.md
+ *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 사용자 로그 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminUserLogTest.php
+ * ```
+ */
 class AdminUserLogController extends AdminResourceController
 {
-    protected $filterable = ['admin_user_id', 'status', 'ip_address'];
+    // 뷰 경로 변수 정의
+    public $indexPath = 'jiny-admin::admin.user_logs.index';
+    public $createPath = 'jiny-admin::admin.user_logs.create';
+    public $editPath = 'jiny-admin::admin.user_logs.edit';
+    public $showPath = 'jiny-admin::admin.user_logs.show';
+
+    // 필터링 및 정렬 관련 설정
+    protected $filterable = ['admin_user_id', 'status', 'ip_address', 'search', 'date_from', 'date_to'];
     protected $validFilters = [
         'admin_user_id' => 'string|uuid',
         'status' => 'in:success,fail',
         'ip_address' => 'string|max:45',
+        'search' => 'string',
+        'date_from' => 'date',
+        'date_to' => 'date'
     ];
     protected $sortableColumns = ['id', 'admin_user_id', 'ip_address', 'status', 'created_at'];
 
@@ -32,6 +70,9 @@ class AdminUserLogController extends AdminResourceController
      */
     protected $logTableName = 'admin_user_logs';
 
+    /**
+     * 생성자
+     */
     public function __construct()
     {
         parent::__construct();
@@ -39,6 +80,7 @@ class AdminUserLogController extends AdminResourceController
 
     /**
      * 테이블 이름 반환
+     * Activity Log 테이블 이름 반환
      */
     protected function getTableName()
     {
@@ -47,20 +89,22 @@ class AdminUserLogController extends AdminResourceController
 
     /**
      * 모듈 이름 반환
+     * Activity Log 모듈 이름 반환
      */
     protected function getModuleName()
     {
-        return 'admin.user-logs';
+        return 'admin.admin_user_logs';
     }
 
     /**
      * 관리자 사용자 로그 목록 조회 (템플릿 메소드 구현)
+     * AdminUser와의 연관성을 고려하여 관리자 정보도 함께 표시
      */
     protected function _index(Request $request): View
     {
         $query = AdminUserLog::with('admin');
         $filters = $this->getFilterParameters($request);
-        $query = $this->applyFilter($filters, $query, []);
+        $query = $this->applyFilter($filters, $query, ['search']);
         
         $sortField = $request->get('sort', 'id');
         $sortDirection = $request->get('direction', 'desc');
@@ -68,43 +112,38 @@ class AdminUserLogController extends AdminResourceController
 
         $rows = $query->paginate(15);
 
-        //dd($rows);
-        return view('jiny-admin::admin.user_logs.index', [
+        // 통계 데이터 추가 (AdminUser와의 연관성 반영)
+        $stats = $this->getLogStats();
+
+        return view($this->indexPath, [
             'rows' => $rows,
             'filters' => $filters,
             'sort' => $sortField,
             'dir' => $sortDirection,
             'route' => 'admin.admin.user-logs.',
+            'stats' => $stats,
             'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
 
     /**
-     * 필터링 적용
+     * 로그 통계 데이터 조회
+     * AdminUser와의 연관성을 반영한 통계
      */
-    protected function applyFilter($filters, $query, $likeFields = [])
+    private function getLogStats()
     {
-        // 기본 필터 적용
-        foreach ($this->filterable as $column) {
-            if (isset($filters[$column]) && $filters[$column] !== '') {
-                if (in_array($column, $likeFields)) {
-                    $query->where($column, 'like', "%{$filters[$column]}%");
-                } else {
-                    $query->where($column, $filters[$column]);
-                }
-            }
-        }
-
-        // 검색어(부분일치) 별도 처리
-        if (isset($filters['search']) && $filters['search'] !== '') {
-            $query->where(function($q) use ($filters) {
-                $q->where('message', 'like', "%{$filters['search']}%")
-                  ->orWhere('ip_address', 'like', "%{$filters['search']}%")
-                  ->orWhere('user_agent', 'like', "%{$filters['search']}%");
-            });
-        }
-
-        return $query;
+        return [
+            'total' => AdminUserLog::count(),
+            'success' => AdminUserLog::where('status', 'success')->count(),
+            'failed' => AdminUserLog::where('status', 'fail')->count(),
+            'today' => AdminUserLog::whereDate('created_at', today())->count(),
+            'this_week' => AdminUserLog::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'unique_users' => AdminUserLog::distinct('admin_user_id')->count(),
+            'recent_activity' => AdminUserLog::with('admin')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+        ];
     }
 
     /**
@@ -112,8 +151,12 @@ class AdminUserLogController extends AdminResourceController
      */
     protected function _create(Request $request): View
     {
-        return view('jiny-admin::admin.user_logs.create', [
+        // 관리자 목록을 가져와서 선택할 수 있도록 함
+        $adminUsers = AdminUser::select('id', 'name', 'email')->get();
+
+        return view($this->createPath, [
             'route' => 'admin.admin.user-logs.',
+            'adminUsers' => $adminUsers,
             'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
@@ -124,13 +167,24 @@ class AdminUserLogController extends AdminResourceController
     protected function _store(Request $request): JsonResponse
     {
         $validationRules = [
-            'admin_user_id' => 'required|string|uuid',
+            'admin_user_id' => 'required|string|uuid|exists:admin_users,id',
             'ip_address' => 'nullable|string|max:45',
             'user_agent' => 'nullable|string|max:512',
             'status' => 'required|in:success,fail',
             'message' => 'nullable|string|max:500',
         ];
+        
         $data = $request->validate($validationRules);
+        
+        // AdminUser 존재 여부 확인
+        $adminUser = AdminUser::find($data['admin_user_id']);
+        if (!$adminUser) {
+            return response()->json([
+                'success' => false,
+                'message' => '존재하지 않는 관리자입니다.'
+            ], 422);
+        }
+        
         $userLog = AdminUserLog::create($data);
         
         // Activity Log 기록
@@ -145,13 +199,19 @@ class AdminUserLogController extends AdminResourceController
 
     /**
      * 관리자 사용자 로그 상세 조회 (템플릿 메소드 구현)
+     * AdminUser 정보도 함께 표시
      */
     protected function _show(Request $request, $id): View
     {
         $userLog = AdminUserLog::with('admin')->findOrFail($id);
-        return view('jiny-admin::admin.user_logs.show', [
+        
+        // 관련 관리자 정보 추가 조회
+        $adminUser = AdminUser::find($userLog->admin_user_id);
+        
+        return view($this->showPath, [
             'route' => 'admin.admin.user-logs.',
             'userLog' => $userLog,
+            'adminUser' => $adminUser,
             'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
@@ -162,9 +222,14 @@ class AdminUserLogController extends AdminResourceController
     protected function _edit(Request $request, $id): View
     {
         $userLog = AdminUserLog::with('admin')->findOrFail($id);
-        return view('jiny-admin::admin.user_logs.edit', [
+        
+        // 관리자 목록을 가져와서 선택할 수 있도록 함
+        $adminUsers = AdminUser::select('id', 'name', 'email')->get();
+        
+        return view($this->editPath, [
             'route' => 'admin.admin.user-logs.',
             'userLog' => $userLog,
+            'adminUsers' => $adminUsers,
             'errors' => new \Illuminate\Support\ViewErrorBag()
         ]);
     }
@@ -180,13 +245,24 @@ class AdminUserLogController extends AdminResourceController
         $oldData = $userLog->toArray();
         
         $validationRules = [
-            'admin_user_id' => 'required|string|uuid',
+            'admin_user_id' => 'required|string|uuid|exists:admin_users,id',
             'ip_address' => 'nullable|string|max:45',
             'user_agent' => 'nullable|string|max:512',
             'status' => 'required|in:success,fail',
             'message' => 'nullable|string|max:500',
         ];
+        
         $data = $request->validate($validationRules);
+        
+        // AdminUser 존재 여부 확인
+        $adminUser = AdminUser::find($data['admin_user_id']);
+        if (!$adminUser) {
+            return response()->json([
+                'success' => false,
+                'message' => '존재하지 않는 관리자입니다.'
+            ], 422);
+        }
+        
         $userLog->update($data);
         
         // Activity Log 기록
@@ -232,7 +308,7 @@ class AdminUserLogController extends AdminResourceController
      */
     public function deleteConfirm(Request $request, $id)
     {
-        $userLog = AdminUserLog::findOrFail($id);
+        $userLog = AdminUserLog::with('admin')->findOrFail($id);
         $url = route('admin.admin.user-logs.destroy', $id);
         $title = '로그 삭제';
         
@@ -256,6 +332,7 @@ class AdminUserLogController extends AdminResourceController
 
     /**
      * 통계 페이지
+     * AdminUser와의 연관성을 반영한 상세 통계
      */
     public function stats(): View
     {
@@ -281,23 +358,31 @@ class AdminUserLogController extends AdminResourceController
             ->limit(20)
             ->get();
 
-        // 관리자별 통계
+        // 관리자별 통계 (AdminUser와의 연관성 반영)
         $adminStats = AdminUserLog::selectRaw('admin_user_id, COUNT(*) as count')
+            ->with('admin:id,name,email')
             ->groupBy('admin_user_id')
             ->orderBy('count', 'desc')
             ->limit(10)
+            ->get();
+
+        // 상태별 통계
+        $statusStats = AdminUserLog::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
             ->get();
 
         return view('jiny-admin::logs.login_logs.stats', compact(
             'dailyStats',
             'hourlyStats',
             'ipStats',
-            'adminStats'
+            'adminStats',
+            'statusStats'
         ));
     }
 
     /**
      * 특정 관리자의 로그 통계
+     * AdminUser와의 연관성을 반영한 개별 관리자 통계
      */
     public function adminStats(string $adminUserId): View
     {
@@ -313,10 +398,12 @@ class AdminUserLogController extends AdminResourceController
 
         $stats = [
             'total' => AdminUserLog::where('admin_user_id', $adminUserId)->count(),
-            'success' => AdminUserLog::where('admin_user_id', $adminUserId)->success()->count(),
-            'failed' => AdminUserLog::where('admin_user_id', $adminUserId)->failed()->count(),
-            'today' => AdminUserLog::where('admin_user_id', $adminUserId)->createdToday()->count(),
-            'this_week' => AdminUserLog::where('admin_user_id', $adminUserId)->createdThisWeek()->count(),
+            'success' => AdminUserLog::where('admin_user_id', $adminUserId)->where('status', 'success')->count(),
+            'failed' => AdminUserLog::where('admin_user_id', $adminUserId)->where('status', 'fail')->count(),
+            'today' => AdminUserLog::where('admin_user_id', $adminUserId)->whereDate('created_at', today())->count(),
+            'this_week' => AdminUserLog::where('admin_user_id', $adminUserId)
+                ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+                ->count(),
         ];
 
         return view('jiny-admin::admin.logs.login_logs.admin-stats', compact('admin', 'logs', 'stats'));
@@ -324,6 +411,7 @@ class AdminUserLogController extends AdminResourceController
 
     /**
      * 로그 내보내기
+     * AdminUser 정보도 함께 포함하여 내보내기
      */
     public function export(Request $request): JsonResponse
     {
@@ -332,7 +420,7 @@ class AdminUserLogController extends AdminResourceController
 
             // 필터 적용
             $filters = $this->getFilterParameters($request);
-            $query = $this->applyFilter($filters, $query, []);
+            $query = $this->applyFilter($filters, $query, ['search']);
 
             // 날짜 필터
             if ($request->filled('date_from')) {
@@ -350,14 +438,16 @@ class AdminUserLogController extends AdminResourceController
 
             // CSV 파일 생성
             $file = fopen($filepath, 'w');
-            fputcsv($file, ['ID', '관리자', 'IP 주소', '상태', '메시지', '생성일시']);
+            fputcsv($file, ['ID', '관리자 ID', '관리자 이름', '관리자 이메일', 'IP 주소', '상태', '메시지', '생성일시']);
 
             foreach ($logs as $log) {
                 fputcsv($file, [
                     $log->id,
-                    $log->admin_name,
+                    $log->admin_user_id,
+                    $log->admin->name ?? 'N/A',
+                    $log->admin->email ?? 'N/A',
                     $log->ip_address,
-                    $log->status_label,
+                    $log->status,
                     $log->message,
                     $log->created_at->format('Y-m-d H:i:s'),
                 ]);
@@ -389,15 +479,15 @@ class AdminUserLogController extends AdminResourceController
      */
     public function downloadCsv(Request $request)
     {
-        $query = AdminUserLog::query();
+        $query = AdminUserLog::with('admin');
         $filters = $this->getFilterParameters($request);
-        $query = $this->applyFilter($filters, $query, []);
+        $query = $this->applyFilter($filters, $query, ['search']);
         $sortField = $request->get('sort', 'id');
         $sortDirection = $request->get('direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
         $filename = 'admin_user_logs_' . date('Ymd_His') . '.csv';
         $columns = [
-            'id', 'admin_user_id', 'ip_address', 'user_agent', 'status', 'message', 'created_at'
+            'id', 'admin_user_id', 'admin_name', 'admin_email', 'ip_address', 'user_agent', 'status', 'message', 'created_at'
         ];
         return new \Symfony\Component\HttpFoundation\StreamedResponse(function () use ($query, $columns) {
             $handle = fopen('php://output', 'w');
@@ -407,10 +497,17 @@ class AdminUserLogController extends AdminResourceController
             fputcsv($handle, $columns);
             $query->chunk(500, function ($rows) use ($handle, $columns) {
                 foreach ($rows as $row) {
-                    $data = [];
-                    foreach ($columns as $col) {
-                        $data[] = $row->{$col};
-                    }
+                    $data = [
+                        $row->id,
+                        $row->admin_user_id,
+                        $row->admin->name ?? 'N/A',
+                        $row->admin->email ?? 'N/A',
+                        $row->ip_address,
+                        $row->user_agent,
+                        $row->status,
+                        $row->message,
+                        $row->created_at
+                    ];
                     fputcsv($handle, $data);
                 }
             });

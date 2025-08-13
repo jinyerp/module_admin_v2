@@ -6,512 +6,650 @@ use Jiny\Admin\App\Http\Controllers\AdminResourceController;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Jiny\Admin\App\Models\AdminActivityLog;
 use Jiny\Admin\App\Models\AdminAuditLog;
 use Jiny\Admin\App\Models\AdminUser;
+use Jiny\Admin\App\Models\AdminSession;
+use Illuminate\Support\Facades\Auth;
 
+/**
+ * AdminSessionController
+ *
+ * 관리자 세션 관리 컨트롤러
+ * AdminResourceController를 상속하여 템플릿 메소드 패턴으로 구현
+ * 
+ * AdminUser와 밀접한 연관성을 가짐:
+ * - AdminSession.admin_user_id 필드가 AdminUser.id와 연결
+ * - 세션별 관리자 정보 표시 및 통계
+ * - 보안 모니터링 및 세션 관리
+ *
+ * @package Jiny\Admin\App\Http\Controllers\Admin
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ *
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/AdminSession.md
+ *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 세션 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminSessionTest.php
+ * ```
+ */
 class AdminSessionController extends AdminResourceController
 {
-    protected $sortableColumns = ['session_id', 'admin_name', 'admin_email', 'admin_type', 'ip_address', 'last_activity', 'login_at'];
-    protected $filterable = ['search', 'type', 'active', 'date_from', 'date_to'];
-    private $route = 'admin.sessions.';
+    // 뷰 경로 변수 정의
+    public $indexPath = 'jiny-admin::admin.sessions.index';
+    public $createPath = 'jiny-admin::admin.sessions.create';
+    public $editPath = 'jiny-admin::admin.sessions.edit';
+    public $showPath = 'jiny-admin::admin.sessions.show';
 
+    // 필터링 및 정렬 관련 설정
+    protected $filterable = ['search', 'type', 'active', 'date_from', 'date_to'];
+    protected $validFilters = ['search', 'type', 'active', 'date_from', 'date_to', 'ip_address', 'last_activity'];
+    protected $sortableColumns = ['session_id', 'admin_name', 'admin_email', 'admin_type', 'ip_address', 'last_activity', 'login_at'];
+
+    private $route = 'admin.admin.sessions.';
+    private $config;
+
+    /**
+     * 생성자
+     * 패키지의 admin config를 읽어와서 초기화
+     */
     public function __construct()
     {
         parent::__construct();
+        
+        // 패키지의 admin config 읽어오기
+        $this->config = config('admin.settings');
     }
 
     /**
      * 테이블 이름 반환
+     * Activity Log 테이블 이름 반환
      */
     protected function getTableName()
-    {
-        return 'sessions';
-    }
-
-    /**
-     * 모듈 이름 반환
-     */
-    protected function getModuleName()
     {
         return 'admin_sessions';
     }
 
     /**
-     * 세션 목록 (추상 메서드 구현)
+     * 모듈 이름 반환
+     * Activity Log 모듈 이름 반환
+     */
+    protected function getModuleName()
+    {
+        return 'admin.admin_sessions';
+    }
+
+
+
+    /**
+     * 세션 목록 조회
+     * index() 에서 템플릿 메소드 호출
+     * AdminSession 모델의 스코프와 관계를 활용하여 효율적으로 조회
      */
     protected function _index(Request $request): View
     {
-        // 1. admin_sessions 테이블에서 활성 세션만 조회 (중복 방지)
-        $adminSessionRows = DB::table('admin_sessions')
-            ->where('is_active', true)
-            ->orderBy('last_activity', 'desc')
-            ->get();
+        // AdminSession 모델을 사용하여 쿼리 빌더 시작
+        $query = AdminSession::with('adminUser');
 
-        $adminSessions = [];
-        foreach ($adminSessionRows as $adminSession) {
-            // 2. sessions 테이블에서 해당 세션 정보 조회
-            $session = DB::table('sessions')->where('id', $adminSession->session_id)->first();
-            
-            if ($session) {
-                // 3. 세션 만료 확인 (기본 120분)
-                $sessionLifetime = config('session.lifetime', 120);
-                
-                // last_activity 시간 처리 개선
-                $lastActivity = null;
-                if ($adminSession->last_activity) {
-                    $lastActivity = $adminSession->last_activity;
-                } elseif ($session->last_activity) {
-                    // sessions 테이블의 last_activity는 Unix timestamp
-                    $lastActivity = \Carbon\Carbon::createFromTimestamp($session->last_activity);
-                } else {
-                    // 기본값으로 현재 시간 사용
-                    $lastActivity = now();
-                }
-                
-                // Carbon 객체가 아닌 경우 변환
-                if (!$lastActivity instanceof \Carbon\Carbon) {
-                    $lastActivity = \Carbon\Carbon::parse($lastActivity);
-                }
-                
-                // 원본 last_activity 보존을 위해 복사본 사용
-                $lastActivityCopy = $lastActivity->copy();
-                $expiryTime = $lastActivityCopy->addMinutes($sessionLifetime);
-                
-                // 만료된 세션은 제외
-                if (now()->isAfter($expiryTime)) {
-                    // 만료된 세션을 비활성으로 표시
-                    DB::table('admin_sessions')
-                        ->where('session_id', $adminSession->session_id)
-                        ->update(['is_active' => false]);
-                    continue;
-                }
+        // 검색 필터링
+        if ($request->filled('filter_search')) {
+            $search = $request->filter_search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('adminUser', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%");
+                })->orWhere('ip_address', 'like', "%{$search}%");
+            });
+        }
 
-                $adminSessions[$adminSession->session_id] = [
-                    'session_id' => $adminSession->session_id,
-                    'admin_user_id' => $adminSession->admin_user_id,
-                    'admin_name' => $adminSession->admin_name,
-                    'admin_email' => $adminSession->admin_email,
-                    'admin_type' => $adminSession->admin_type,
-                    'ip_address' => $adminSession->ip_address ?? $session->ip_address,
-                    'user_agent' => $adminSession->user_agent ?? $session->user_agent,
-                    'last_activity' => $lastActivity, // 원본 시간 보존
-                    'last_activity_formatted' => $this->formatKoreanTime($lastActivity), // 포맷팅된 시간
-                    'login_location' => $adminSession->login_location,
-                    'device' => $adminSession->device,
-                    'login_at' => $adminSession->login_at,
-                    'is_active' => $adminSession->is_active,
-                ];
+        // 관리자 타입 필터링
+        if ($request->filled('filter_type')) {
+            $type = $request->filter_type;
+            $query->whereHas('adminUser', function ($userQuery) use ($type) {
+                $userQuery->where('type', $type);
+            });
+        }
+
+        // 활성 상태 필터링
+        if ($request->filled('filter_active')) {
+            $active = $request->filter_active;
+            if ($active === 'active') {
+                $query->active();
+            } else {
+                $query->inactive();
             }
         }
 
-        // 4. 사용자별 중복 세션 제거 (가장 최근 세션만 유지)
-        $adminSessions = $this->deduplicateSessionsByUser($adminSessions);
+        // 날짜 범위 필터링
+        if ($request->filled('filter_date_from') && $request->filled('filter_date_to')) {
+            $dateFrom = $request->filter_date_from;
+            $dateTo = $request->filter_date_to;
+            $query->byDateRange($dateFrom, $dateTo);
+        }
 
-        // 5. 필터 적용
-        $filterSearch = $request->get('filter_search');
-        $filterType = $request->get('filter_type');
-        $filterActive = $request->get('filter_active');
+        // 정렬
+        $sortBy = $request->get('sort', 'last_activity');
+        $sortOrder = $request->get('order', 'desc');
         
-        $filtered = array_filter($adminSessions, function($sess) use ($filterSearch, $filterType, $filterActive) {
-            $ok = true;
-            if ($filterSearch) {
-                $ok = $ok && (
-                    (isset($sess['admin_name']) && str_contains($sess['admin_name'], $filterSearch)) ||
-                    (isset($sess['admin_email']) && str_contains($sess['admin_email'], $filterSearch)) ||
-                    (isset($sess['ip_address']) && str_contains($sess['ip_address'], $filterSearch))
-                );
-            }
-            if ($filterType) {
-                $ok = $ok && (isset($sess['admin_type']) && $sess['admin_type'] === $filterType);
-            }
-            if ($filterActive !== null && $filterActive !== '') {
-                $ok = $ok && (isset($sess['is_active']) && (string)$sess['is_active'] === $filterActive);
-            }
-            return $ok;
-        });
-        
-        // 6. 정렬 적용
-        $sortField = $request->get('sort', 'last_activity');
-        $sortDirection = $request->get('direction', 'desc');
-        usort($filtered, function($a, $b) use ($sortField, $sortDirection) {
-            $aVal = $a[$sortField] ?? null;
-            $bVal = $b[$sortField] ?? null;
-            
-            // Carbon 객체 비교
-            if ($aVal instanceof \Carbon\Carbon && $bVal instanceof \Carbon\Carbon) {
-                if ($sortDirection === 'asc') {
-                    return $aVal->compare($bVal);
-                } else {
-                    return $bVal->compare($aVal);
+        if (in_array($sortBy, $this->sortableColumns)) {
+            if ($sortBy === 'admin_name' || $sortBy === 'admin_email' || $sortBy === 'admin_type') {
+                // AdminUser 관계를 통한 정렬
+                $query->join('admin_users', 'admin_sessions.admin_user_id', '=', 'admin_users.id');
+                if ($sortBy === 'admin_name') {
+                    $query->orderBy('admin_users.name', $sortOrder);
+                } elseif ($sortBy === 'admin_email') {
+                    $query->orderBy('admin_users.email', $sortOrder);
+                } elseif ($sortBy === 'admin_type') {
+                    $query->orderBy('admin_users.type', $sortOrder);
                 }
-            }
-            
-            // 일반 값 비교
-            if ($aVal == $bVal) return 0;
-            if ($sortDirection === 'asc') {
-                return $aVal <=> $bVal;
             } else {
-                return $bVal <=> $aVal;
+                // AdminSession 테이블 직접 정렬
+                $query->orderBy($sortBy, $sortOrder);
             }
-        });
-        
-        // 7. 페이징 (수동)
-        $page = $request->get('page', 1);
-        $perPage = $request->get('per_page', 20);
-        $items = array_values($filtered);
-        $total = count($items);
-        $paged = array_slice($items, ($page-1)*$perPage, $perPage);
-        $sessions = new LengthAwarePaginator($paged, $total, $perPage, $page, [
-            'path' => $request->url(),
-            'query' => $request->query(),
-        ]);
+        } else {
+            $query->orderBy('last_activity', 'desc');
+        }
 
-        // 통계 데이터
-        $stats = [
-            'total' => count($adminSessions),
-            'active' => count(array_filter($adminSessions, fn($s) => isset($s['is_active']) && $s['is_active'])),
-            'inactive' => count(array_filter($adminSessions, fn($s) => isset($s['is_active']) && !$s['is_active'])),
-            'super' => count(array_filter($adminSessions, fn($s) => isset($s['admin_type']) && $s['admin_type'] === 'super')),
-        ];
+        // 페이지네이션
+        $perPage = $request->get('per_page', 15);
+        $rows = $query->paginate($perPage);
 
-        $sort = $request->get('sort', 'last_activity');
-        $dir = $request->get('direction', 'desc');
-        
-        $filters = [
-            'search' => $filterSearch,
-            'type' => $filterType,
-            'active' => $filterActive,
-        ];
-        
-        return view('jiny-admin::admin.sessions.index', [
-            'rows' => $sessions,
-            'stats' => $stats,
-            'sort' => $sort,
-            'dir' => $dir,
+        // 필터 데이터 전달
+        $filters = $request->only($this->filterable);
+
+        // Activity Log 기록
+        $this->logActivity('list', '세션 목록 조회', null, $filters);
+
+        return view($this->indexPath, [
+            'rows' => $rows,
             'filters' => $filters,
-            'route' => $this->route
+            'route' => $this->route,
         ]);
     }
 
     /**
-     * 세션 상세 조회 (추상 메서드 구현)
+     * 세션 생성 폼
+     */
+    protected function _create(Request $request): View
+    {
+        // Activity Log 기록
+        $this->logActivity('create', '세션 생성 폼 접근', null, []);
+
+        return view($this->createPath, [
+            'route' => $this->route,
+        ]);
+    }
+
+    /**
+     * 세션 저장
+     */
+    protected function _store(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'admin_user_id' => 'required|integer|exists:admin_users,id',
+                'session_id' => 'required|string|max:255|unique:admin_sessions,session_id',
+                'ip_address' => 'required|ip',
+                'user_agent' => 'nullable|string|max:500',
+                'login_at' => 'required|date',
+                'last_activity' => 'nullable|date',
+            ], [
+                'admin_user_id.required' => '관리자 ID를 입력해주세요.',
+                'admin_user_id.exists' => '존재하지 않는 관리자입니다.',
+                'session_id.required' => '세션 ID를 입력해주세요.',
+                'session_id.unique' => '이미 존재하는 세션 ID입니다.',
+                'ip_address.required' => 'IP 주소를 입력해주세요.',
+                'ip_address.ip' => '유효하지 않은 IP 주소입니다.',
+                'user_agent.max' => '사용자 에이전트는 500자를 초과할 수 없습니다.',
+                'login_at.required' => '로그인 시간을 입력해주세요.',
+                'login_at.date' => '유효하지 않은 날짜 형식입니다.',
+                'last_activity.date' => '유효하지 않은 날짜 형식입니다.',
+            ]);
+
+            // 세션 생성 (실제 구현에서는 세션 테이블에 저장)
+            $session = $this->createSessionInStorage($validated);
+
+            // Activity Log 기록
+            $this->logActivity('create', '세션 생성', $session->id ?? null, $validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => '세션이 성공적으로 생성되었습니다.',
+                'data' => [
+                    'session_id' => $validated['session_id'],
+                    'admin_user_id' => $validated['admin_user_id']
+                ]
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '세션 생성 중 오류가 발생했습니다: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 세션 상세 보기
+     * 해당 세션의 관리자 정보도 함께 표시
      */
     protected function _show(Request $request, $id): View
     {
-        // admin_sessions 테이블에서 세션 정보 조회
-        $adminSession = DB::table('admin_sessions')->where('session_id', $id)->first();
-        if (!$adminSession) {
-            abort(404, '세션을 찾을 수 없습니다.');
-        }
-        
-        // sessions 테이블에서 세션 정보 조회
-        $session = DB::table('sessions')->where('id', $id)->first();
-        
-        // 관리자 정보 조회
-        $adminUser = null;
-        if ($adminSession->admin_user_id) {
-            $adminUser = AdminUser::find($adminSession->admin_user_id);
-        }
-        
-        // 시간 포맷팅
-        $lastActivity = null;
-        if ($adminSession->last_activity) {
-            $lastActivity = $adminSession->last_activity;
-        } elseif ($session && $session->last_activity) {
-            $lastActivity = \Carbon\Carbon::createFromTimestamp($session->last_activity);
-        }
-        
-        $lastActivityFormatted = $lastActivity ? $this->formatKoreanTime($lastActivity) : '알 수 없음';
-        
-        return view('jiny-admin::admin.sessions.show', [
-            'session' => $session,
-            'adminSession' => $adminSession,
-            'adminUser' => $adminUser,
-            'lastActivityFormatted' => $lastActivityFormatted,
-            'route' => $this->route
-        ]);
-    }
-
-    // /**
-    //  * 세션 상세 조회 (public 메서드)
-    //  */
-    // public function show(Request $request, $id): View
-    // {
-    //     return $this->_show($request, $id);
-    // }
-
-    /**
-     * 세션 강제 종료
-     */
-    /**
-     * 삭제 확인 폼 제공
-     */
-    public function confirm($id)
-    {
-        $session = DB::table('admin_sessions')->where('session_id', $id)->first();
+        $session = $this->getSessionFromStorage($id);
         
         if (!$session) {
-            return response()->json(['error' => '세션을 찾을 수 없습니다.'], 404);
+            abort(404, '세션을 찾을 수 없습니다.');
         }
-        
-        $url = route('admin.sessions.destroy', $id);
-        $title = $session->admin_name . ' 세션 강제 종료';
-        
-        // AJAX 요청인 경우 HTML만 반환
-        if (request()->ajax()) {
-            return view('jiny-admin::admin.sessions.form_delete', [
-                'session' => $session,
-                'url' => $url,
-                'title' => $title,
-                'randomKey' => strtoupper(substr(md5(uniqid()), 0, 8))
-            ]);
-        }
-        
-        // 일반 요청인 경우 전체 페이지 반환
-        return view('jiny-admin::admin.sessions.form_delete', [
+
+        // AdminUser 정보 조회 (연관성 반영)
+        $adminUser = AdminUser::find($session->admin_user_id);
+        $session->adminUser = $adminUser;
+
+        // Activity Log 기록
+        $this->logActivity('read', '세션 상세 조회', $id, ['session_id' => $id]);
+
+        return view($this->showPath, [
             'session' => $session,
-            'url' => $url,
-            'title' => $title,
-            'randomKey' => strtoupper(substr(md5(uniqid()), 0, 8))
+            'route' => $this->route,
         ]);
     }
 
     /**
-     * 세션 강제 종료
+     * 세션 수정 폼
      */
-    public function destroy($id)
+    protected function _edit(Request $request, $id): View
+    {
+        $session = $this->getSessionFromStorage($id);
+        
+        if (!$session) {
+            abort(404, '세션을 찾을 수 없습니다.');
+        }
+
+        // Activity Log 기록
+        $this->logActivity('update', '세션 수정 폼 접근', $id, ['session_id' => $id]);
+
+        return view($this->editPath, [
+            'session' => $session,
+            'route' => $this->route,
+        ]);
+    }
+
+    /**
+     * 세션 수정
+     */
+    protected function _update(Request $request, $id): JsonResponse
     {
         try {
-            // 삭제 전 데이터 가져오기 (Audit Log용)
-            $session = DB::table('admin_sessions')->where('session_id', $id)->first();
+            $session = $this->getSessionFromStorage($id);
+            
             if (!$session) {
                 return response()->json([
                     'success' => false,
                     'message' => '세션을 찾을 수 없습니다.'
                 ], 404);
             }
-            
-            $oldData = (array)$session;
-            
-            // 세션 데이터 삭제
-            DB::table('sessions')->where('id', $id)->delete();
-            DB::table('admin_sessions')->where('session_id', $id)->delete();
-            
+
+            // 수정 전 데이터 가져오기 (Audit Log용)
+            $oldData = (array) $session;
+
+            $validated = $request->validate([
+                'ip_address' => 'required|ip',
+                'user_agent' => 'nullable|string|max:500',
+                'last_activity' => 'nullable|date',
+            ], [
+                'ip_address.required' => 'IP 주소를 입력해주세요.',
+                'ip_address.ip' => '유효하지 않은 IP 주소입니다.',
+                'user_agent.max' => '사용자 에이전트는 500자를 초과할 수 없습니다.',
+                'last_activity.date' => '유효하지 않은 날짜 형식입니다.',
+            ]);
+
+            // 세션 수정 (실제 구현에서는 세션 테이블에 업데이트)
+            $this->updateSessionInStorage($id, $validated);
+
             // Activity Log 기록
-            $this->logActivity('delete', '세션 강제 종료', $oldData, ['deleted_session_id' => $id]);
+            $this->logActivity('update', '세션 수정', $id, $validated);
             
             // Audit Log 기록
-            $this->logAudit('delete', $oldData, null, '세션 강제 종료', null);
-            
+            $this->logAudit('update', $oldData, $validated, '세션 수정', $id);
+
             return response()->json([
                 'success' => true,
-                'message' => '세션이 강제 종료되었습니다.',
+                'message' => '세션이 성공적으로 수정되었습니다.',
                 'data' => [
                     'session_id' => $id,
-                    'admin_name' => $oldData['admin_name'] ?? 'Unknown'
+                    'updated_fields' => array_keys($validated)
                 ]
-            ], 200);
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => '세션 강제 종료 중 오류가 발생했습니다: ' . $e->getMessage()
+                'message' => '세션 수정 중 오류가 발생했습니다: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * 세션 재발급(갱신) 및 로그 기록
+     * 세션 삭제
+     */
+    protected function _destroy(Request $request): JsonResponse
+    {
+        $id = $request->route('id');
+        
+        try {
+            $session = $this->getSessionFromStorage($id);
+            
+            if (!$session) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '세션을 찾을 수 없습니다.'
+                ], 404);
+            }
+
+            // 삭제 전 데이터 가져오기 (Audit Log용)
+            $oldData = (array) $session;
+
+            // 세션 삭제 (실제 구현에서는 세션 테이블에서 삭제)
+            $this->deleteSessionFromStorage($id);
+
+            // Activity Log 기록
+            $this->logActivity('delete', '세션 삭제', $id, ['deleted_id' => $id]);
+            
+            // Audit Log 기록
+            $this->logAudit('delete', $oldData, null, '세션 삭제', null);
+
+            return response()->json([
+                'success' => true,
+                'message' => '세션이 성공적으로 삭제되었습니다.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '세션 삭제 중 오류가 발생했습니다: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 세션 확인
+     */
+    public function confirm($id)
+    {
+        $session = $this->getSessionFromStorage($id);
+        
+        if (!$session) {
+            abort(404, '세션을 찾을 수 없습니다.');
+        }
+
+        // AdminUser 정보 조회 (연관성 반영)
+        $adminUser = AdminUser::find($session->admin_user_id);
+        $session->adminUser = $adminUser;
+
+        $randomKey = strtoupper(substr(md5(uniqid()), 0, 8));
+        
+        return view('jiny-admin::admin.sessions.form_delete', [
+            'session' => $session,
+            'title' => '세션 삭제',
+            'randomKey' => $randomKey
+        ]);
+    }
+
+    /**
+     * 세션 삭제
+     */
+    public function destroy($id)
+    {
+        $session = $this->getSessionFromStorage($id);
+        
+        if (!$session) {
+            return redirect()->route('admin.admin.sessions.index')
+                ->with('error', '세션을 찾을 수 없습니다.');
+        }
+
+        // 삭제 전 데이터 가져오기 (Audit Log용)
+        $oldData = (array) $session;
+
+        // 세션 삭제 (실제 구현에서는 세션 테이블에서 삭제)
+        $this->deleteSessionFromStorage($id);
+
+        // Activity Log 기록
+        $this->logActivity('delete', '세션 삭제', $id, ['deleted_id' => $id]);
+        
+        // Audit Log 기록
+        $this->logAudit('delete', $oldData, null, '세션 삭제', null);
+
+        return redirect()->route('admin.admin.sessions.index')
+            ->with('success', '세션이 성공적으로 삭제되었습니다.');
+    }
+
+    /**
+     * 세션 새로고침
      */
     public function refresh($id)
     {
-        // 1. 기존 세션 데이터 조회
-        $oldSession = DB::table('sessions')->where('id', $id)->first();
-        if (!$oldSession) {
-            return redirect()->back()->with('error', '세션을 찾을 수 없습니다.');
+        $session = $this->getSessionFromStorage($id);
+        
+        if (!$session) {
+            return redirect()->route('admin.admin.sessions.index')
+                ->with('error', '세션을 찾을 수 없습니다.');
         }
+
+        // 수정 전 데이터 가져오기 (Audit Log용)
+        $oldData = (array) $session;
+
+        // 세션 새로고침 (실제 구현에서는 세션 테이블에 업데이트)
+        $this->refreshSessionInStorage($id);
+
+        // Activity Log 기록
+        $this->logActivity('update', '세션 새로고침', $id, ['action' => 'refresh']);
         
-        // 2. 새 세션ID 생성
-        $newId = Str::random(40);
-        
-        // 3. 세션 데이터 복사 (ID만 변경)
-        $newSession = (array)$oldSession;
-        $newSession['id'] = $newId;
-        $now = now();
-        $newSession['last_activity'] = $now->timestamp;
-        
-        // 4. DB에 새 세션 insert, 기존 세션 delete
-        DB::table('sessions')->insert($newSession);
-        DB::table('sessions')->where('id', $id)->delete();
-        
-        // 5. admin_sessions도 ID 변경 및 last_activity 갱신
-        $adminSession = DB::table('admin_sessions')->where('session_id', $id)->first();
-        if ($adminSession) {
-            $adminSessionArr = (array)$adminSession;
-            $adminSessionArr['session_id'] = $newId;
-            $adminSessionArr['last_activity'] = $now;
-            unset($adminSessionArr['id']); // auto-increment 컬럼 제거
-            // admin_user_id가 없으면 세션에서 보완
-            if (empty($adminSessionArr['admin_user_id']) && !empty($oldSession->user_id)) {
-                $adminSessionArr['admin_user_id'] = $oldSession->user_id;
-            }
-            DB::table('admin_sessions')->insert($adminSessionArr);
-            DB::table('admin_sessions')->where('session_id', $id)->delete();
-        }
-        
-        // 6. 로그 기록 (activity, audit)
-        $this->logSessionAction('refresh', $newId, '세션 재발급(갱신)');
-        
-        return redirect()->back()->with('success', '세션이 재발급(갱신)되었습니다.');
+        // Audit Log 기록
+        $this->logAudit('update', $oldData, ['last_activity' => now()], '세션 새로고침', $id);
+
+        return redirect()->route('admin.admin.sessions.index')
+            ->with('success', '세션이 새로고침되었습니다.');
     }
 
     /**
-     * 세션 관련 액션을 activity-logs, audit-logs에 모두 기록
+     * 세션 액션 로깅
      */
     protected function logSessionAction($action, $sessionId, $desc)
     {
-        $ip = request()->ip();
-        $userAgent = request()->userAgent();
-        $adminSession = DB::table('admin_sessions')->where('session_id', $sessionId)->first();
-        $adminUserId = $adminSession->admin_user_id ?? null;
-        
-        // admin_user_id가 없으면 로그 기록하지 않음
-        if (!$adminUserId) {
-            return;
+        try {
+            $adminId = Auth::guard('admin')->id();
+            if (!$adminId) return;
+
+            AdminActivityLog::create([
+                'admin_user_id' => $adminId,
+                'action' => $action,
+                'resource_type' => 'session',
+                'resource_id' => $sessionId,
+                'description' => $desc,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('세션 액션 로깅 실패', [
+                'error' => $e->getMessage(),
+                'action' => $action,
+                'session_id' => $sessionId,
+            ]);
         }
-        
-        // activity log
-        AdminActivityLog::create([
-            'admin_user_id' => $adminUserId,
-            'action' => $action,
-            'module' => 'sessions',
-            'description' => $desc,
-            'ip_address' => $ip,
-            'user_agent' => $userAgent,
-        ]);
-        
-        // audit log
-        AdminAuditLog::create([
-            'admin_user_id' => $adminUserId,
-            'action' => $action,
-            'table_name' => 'sessions',
-            'record_id' => $sessionId,
-            'old_values' => null,
-            'new_values' => null,
-            'ip_address' => $ip,
-            'user_agent' => $userAgent,
-            'description' => $desc,
-            'severity' => 'medium',
-            'affected_count' => 1,
-        ]);
     }
 
     /**
-     * 사용자별 중복 세션 제거 (가장 최근 세션만 유지)
-     * 
-     * @param array $sessions
-     * @return array
+     * 사용자별 세션 중복 제거
      */
     private function deduplicateSessionsByUser(array $sessions): array
     {
         $userSessions = [];
         
-        foreach ($sessions as $sessionId => $session) {
-            $userId = $session['admin_user_id'];
+        foreach ($sessions as $session) {
+            $userId = $session->admin_user_id;
             
-            // 해당 사용자의 기존 세션이 없거나, 현재 세션이 더 최근인 경우
-            if (!isset($userSessions[$userId]) || 
-                $session['last_activity'] > $userSessions[$userId]['last_activity']) {
+            if (!isset($userSessions[$userId])) {
                 $userSessions[$userId] = $session;
+            } else {
+                // 더 최근 활동이 있는 세션 선택
+                if ($session->last_activity > $userSessions[$userId]->last_activity) {
+                    $userSessions[$userId] = $session;
+                }
             }
         }
         
-        // 중복 제거된 세션들을 다시 session_id를 키로 하는 배열로 변환
-        $deduplicated = [];
-        foreach ($userSessions as $session) {
-            $deduplicated[$session['session_id']] = $session;
-        }
-        
-        return $deduplicated;
+        return array_values($userSessions);
     }
 
     /**
-     * 일괄 세션 강제 종료
+     * 일괄 삭제
      */
     public function bulkDelete(Request $request)
     {
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'string',
-        ]);
+        try {
+            $request->validate([
+                'ids' => 'required|array',
+                'ids.*' => 'string'
+            ]);
 
-        $ids = $request->ids;
-        $count = count($ids);
+            $ids = $request->input('ids');
+            $deletedCount = 0;
 
-        // 삭제 전 데이터 가져오기 (Audit Log용)
-        $oldData = DB::table('admin_sessions')->whereIn('session_id', $ids)->get()->toArray();
+            foreach ($ids as $id) {
+                $session = $this->getSessionFromStorage($id);
+                if ($session) {
+                    // 삭제 전 데이터 가져오기 (Audit Log용)
+                    $oldData = (array) $session;
 
-        // 세션 데이터 삭제
-        DB::table('sessions')->whereIn('id', $ids)->delete();
-        DB::table('admin_sessions')->whereIn('session_id', $ids)->delete();
+                    // 세션 삭제
+                    $this->deleteSessionFromStorage($id);
+                    $deletedCount++;
 
-        // Activity Log 기록
-        $this->logActivity('delete', '세션 일괄 강제 종료', null, ['deleted_session_ids' => $ids]);
-        
-        // Audit Log 기록
-        $this->logAudit('delete', $oldData, null, '세션 일괄 강제 종료', null);
+                    // Audit Log 기록
+                    $this->logAudit('delete', $oldData, null, '세션 일괄 삭제', null);
+                }
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => "{$count}개의 세션이 성공적으로 강제 종료되었습니다.",
-        ]);
+            // Activity Log 기록
+            $this->logActivity('delete', '세션 일괄 삭제', null, [
+                'deleted_ids' => $ids,
+                'deleted_count' => $deletedCount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $deletedCount . '개의 세션이 성공적으로 삭제되었습니다.'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '일괄 삭제 중 오류가 발생했습니다: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * 한글 시간 표현으로 변환
-     * 
-     * @param mixed $carbon
-     * @return string
+     * 한국 시간 포맷
      */
     private function formatKoreanTime($carbon): string
     {
-        if (!$carbon instanceof \Carbon\Carbon) {
-            try {
-                $carbon = \Carbon\Carbon::parse($carbon);
-            } catch (\Exception $e) {
-                return '알 수 없음';
-            }
+        return $carbon->format('Y년 m월 d일 H시 i분 s초');
+    }
+
+    // 실제 구현에서는 다음 메서드들을 구현해야 합니다:
+
+    /**
+     * 스토리지에서 세션 목록 조회
+     * AdminSession 모델을 사용하여 실제 데이터베이스에서 조회
+     */
+    private function getSessionsFromStorage()
+    {
+        return AdminSession::with('adminUser')
+            ->orderBy('last_activity', 'desc')
+            ->get();
+    }
+
+    /**
+     * 스토리지에서 특정 세션 조회
+     * AdminSession 모델을 사용하여 실제 데이터베이스에서 조회
+     */
+    private function getSessionFromStorage($id)
+    {
+        return AdminSession::with('adminUser')->where('session_id', $id)->first();
+    }
+
+    /**
+     * 스토리지에 세션 생성
+     * AdminSession 모델을 사용하여 실제 데이터베이스에 저장
+     */
+    private function createSessionInStorage($data)
+    {
+        return AdminSession::create($data);
+    }
+
+    /**
+     * 스토리지의 세션 수정
+     * AdminSession 모델을 사용하여 실제 데이터베이스에 업데이트
+     */
+    private function updateSessionInStorage($id, $data)
+    {
+        $session = AdminSession::where('session_id', $id)->first();
+        if ($session) {
+            return $session->update($data);
         }
+        return false;
+    }
 
-        $now = \Carbon\Carbon::now();
-
-        // 미래 시간인 경우
-        if ($carbon->isAfter($now)) {
-            return '방금 전';
+    /**
+     * 스토리지에서 세션 삭제
+     * AdminSession 모델을 사용하여 실제 데이터베이스에서 삭제
+     */
+    private function deleteSessionFromStorage($id)
+    {
+        $session = AdminSession::where('session_id', $id)->first();
+        if ($session) {
+            return $session->delete();
         }
+        return false;
+    }
 
-        $diff = $carbon->diffInSeconds($now);
-
-        if ($diff < 60) {
-            return '방금 전';
-        } elseif ($diff < 3600) {
-            $minutes = floor($diff / 60);
-            return $minutes . '분 전';
-        } elseif ($diff < 86400) {
-            $hours = floor($diff / 3600);
-            return $hours . '시간 전';
-        } elseif ($diff < 2592000) {
-            $days = floor($diff / 86400);
-            return $days . '일 전';
-        } elseif ($diff < 31536000) {
-            $months = floor($diff / 2592000);
-            return $months . '개월 전';
-        } else {
-            $years = floor($diff / 31536000);
-            return $years . '년 전';
+    /**
+     * 스토리지의 세션 새로고침
+     * AdminSession 모델을 사용하여 실제 데이터베이스에 업데이트
+     */
+    private function refreshSessionInStorage($id)
+    {
+        $session = AdminSession::where('session_id', $id)->first();
+        if ($session) {
+            return $session->refresh();
         }
+        return false;
     }
 } 

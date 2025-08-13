@@ -2,7 +2,7 @@
 
 namespace Jiny\Admin\App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use Jiny\Admin\App\Http\Controllers\AdminResourceController;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Jiny\Admin\App\Models\SystemBackupLog;
@@ -13,8 +13,88 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Process;
 
-class AdminSystemController extends Controller
+/**
+ * AdminSystemController
+ *
+ * 관리자 시스템 모니터링 및 관리 컨트롤러
+ * AdminResourceController를 상속하여 템플릿 메소드 패턴으로 구현
+ * 
+ * 시스템 상태, 성능 지표, 하드웨어 정보, 운영 환경 등을 실시간으로 모니터링:
+ * - CPU, 메모리, 디스크, 네트워크 상태 모니터링
+ * - PHP, Laravel, 데이터베이스, 세션 정보 관리
+ * - 시스템 성능 트렌드 및 병목 지점 분석
+ * - 백업, 유지보수, 운영, 성능 로그 통합 관리
+ *
+ * @package Jiny\Admin\App\Http\Controllers\Admin
+ * @author JinyPHP
+ * @version 1.0.0
+ * @since 1.0.0
+ * @license MIT
+ *
+ * 상세한 기능은 관련 문서를 참조하세요.
+ * @docs jiny/admin/docs/features/AdminSystemController.md
+ *
+ * 🔄 기능 수정 시 테스트 실행 필요:
+ * 이 컨트롤러의 기능이 수정되면 다음 테스트를 반드시 실행해주세요:
+ *
+ * ```bash
+ * # 전체 관리자 시스템 관리 테스트 실행
+ * php artisan test jiny/admin/tests/Feature/Admin/AdminSystemControllerTest.php
+ * ```
+ */
+class AdminSystemController extends AdminResourceController
 {
+    // 뷰 경로 변수 정의
+    public $indexPath = 'jiny-admin::admin.systems.index';
+    public $createPath = 'jiny-admin::admin.systems.create';
+    public $editPath = 'jiny-admin::admin.systems.edit';
+    public $showPath = 'jiny-admin::admin.systems.show';
+
+    // 필터링 및 정렬 관련 설정
+    protected $filterable = ['days', 'status', 'type'];
+    protected $validFilters = [
+        'days' => 'integer|min:1|max:365',
+        'status' => 'string|in:normal,warning,critical',
+        'type' => 'string|in:backup,maintenance,operation,performance'
+    ];
+    protected $sortableColumns = ['created_at', 'status', 'type'];
+
+    /**
+     * 로깅 활성화
+     */
+    protected $activeLog = true;
+
+    /**
+     * 로그 테이블명
+     */
+    protected $logTableName = 'admin_systems';
+
+    /**
+     * 생성자
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * 테이블 이름 반환
+     * System 테이블 이름 반환
+     */
+    protected function getTableName()
+    {
+        return 'admin_systems';
+    }
+
+    /**
+     * 모듈 이름 반환
+     * System 모듈 이름 반환
+     */
+    protected function getModuleName()
+    {
+        return 'admin.systems';
+    }
+
     /**
      * 시스템 대시보드 메인 페이지
      */
@@ -86,7 +166,10 @@ class AdminSystemController extends Controller
         // 시스템 정보
         $systemInfo = $this->getSystemInfo();
 
-        return view('jiny-admin::admin.systems.index', compact(
+        // Activity Log 기록
+        $this->logActivity('view', '시스템 대시보드 조회', null, ['days' => $days]);
+
+        return view($this->indexPath, compact(
             'backupStats',
             'maintenanceStats', 
             'operationStats',
@@ -207,6 +290,9 @@ class AdminSystemController extends Controller
             'database' => $systemInfo['database'],
             'session' => $systemInfo['session']
         ];
+
+        // Activity Log 기록
+        $this->logActivity('status', '시스템 상태 조회', null, ['status' => $status]);
 
         return response()->json($status);
     }
@@ -725,6 +811,9 @@ class AdminSystemController extends Controller
             'php' => $this->getPHPInfo(),
         ];
 
+        // Activity Log 기록
+        $this->logActivity('view', 'PHP 상세 정보 조회', null, ['php_version' => $systemInfo['php']['version']]);
+
         return view('jiny-admin::admin.systems.php-detail', compact('systemInfo'));
     }
 
@@ -737,6 +826,9 @@ class AdminSystemController extends Controller
             'laravel' => $this->getLaravelInfo(),
         ];
 
+        // Activity Log 기록
+        $this->logActivity('view', 'Laravel 상세 정보 조회', null, ['laravel_version' => $systemInfo['laravel']['version']]);
+
         return view('jiny-admin::admin.systems.laravel-detail', compact('systemInfo'));
     }
 
@@ -748,6 +840,9 @@ class AdminSystemController extends Controller
         $systemInfo = [
             'database' => $this->getDatabaseInfo(),
         ];
+
+        // Activity Log 기록
+        $this->logActivity('view', '데이터베이스 상세 정보 조회', null, ['driver' => $systemInfo['database']['driver']]);
 
         return view('jiny-admin::admin.systems.database-detail', compact('systemInfo'));
     }
@@ -766,6 +861,9 @@ class AdminSystemController extends Controller
         $totalSessions = null;
         $avgSessionTime = null;
         $maxSessionTime = null;
+
+        // Activity Log 기록
+        $this->logActivity('view', '세션 상세 정보 조회', null, ['driver' => $systemInfo['session']['driver']]);
 
         return view('jiny-admin::admin.systems.session-detail', compact('systemInfo', 'activeSessions', 'totalSessions', 'avgSessionTime', 'maxSessionTime'));
     }

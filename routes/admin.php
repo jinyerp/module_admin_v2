@@ -1,13 +1,14 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 
+/**
+ * 관리자 접속을 위한 prefix를 읽어옵니다.
+ */
 $adminPrefix = config('admin.settings.prefix', 'admin');
 
-// =============================================================================
-// 컨트롤러 Import
-// =============================================================================
-
+/**
+ * 컨틀롤러 Import
+ */
 // 대시보드
 use Jiny\Admin\App\Http\Controllers\AdminDashboard;
 
@@ -46,10 +47,22 @@ use Jiny\Admin\App\Http\Controllers\Admin\AdminSystemPerformanceLogController;
 // 메뉴 관리
 use Jiny\Admin\App\Http\Controllers\Admin\AdminSideMenuController;
 
-// =============================================================================
-// 메인 관리자 라우트 그룹 (인증 필요)
-// =============================================================================
+/**
+ * 라우트는 prefix() 메서드를 사용하여 그룹화 하여 계층적으로 접근할 수 있도록 설계합니다.
+ * 라우트는 관리자 접근을 위한 admin.auth 미들웨어를 사용하여 관리자 접근을 제한합니다.
+ * 라우트를 설정할때에는 파리미터 입력 규칙 및 전달방식에 따라서 우선순위가 존재합니다.
+ * 1. 파라미터 입력 규칙
+ * 2. 전달방식
+ * 3. 우선순위
+ * 4. 라우트 그룹
+ * 5. 라우트 이름
+ * 6. 라우트 컨트롤러
+ * 7. 라우트 메서드
+ */
 
+/**
+ * 라우트 설정
+ */
 Route::prefix($adminPrefix)
     ->middleware(['web', 'admin.auth'])
     ->name('admin.')
@@ -160,9 +173,12 @@ Route::prefix($adminPrefix)
             
             // 관리자별 2FA 설정
             Route::prefix('{id}/2fa')->name('2fa.')->group(function () {
-                Route::get('/setup', [AdminUser2FAController::class, 'setup'])->name('setup')->where('id', '[0-9]+');
+                Route::get('/setup', [AdminUser2FAController::class, 'index'])->name('setup')->where('id', '[0-9]+');
+                Route::post('/setup', [AdminUser2FAController::class, 'store'])->name('store')->where('id', '[0-9]+');
+                Route::get('/manage', [AdminUser2FAController::class, 'edit'])->name('manage')->where('id', '[0-9]+');
+                Route::put('/manage', [AdminUser2FAController::class, 'update'])->name('update')->where('id', '[0-9]+');
+                Route::get('/show', [AdminUser2FAController::class, 'show'])->name('show')->where('id', '[0-9]+');
                 Route::post('/enable', [AdminUser2FAController::class, 'enable'])->name('enable')->where('id', '[0-9]+');
-                Route::get('/manage', [AdminUser2FAController::class, 'manage'])->name('manage')->where('id', '[0-9]+');
                 Route::post('/disable', [AdminUser2FAController::class, 'disable'])->name('disable')->where('id', '[0-9]+');
                 Route::post('/regenerate-backup-codes', [AdminUser2FAController::class, 'regenerateBackupCodes'])->name('regenerate-backup-codes')->where('id', '[0-9]+');
             });
@@ -179,15 +195,23 @@ Route::prefix($adminPrefix)
             Route::delete('/{id}', [AdminLevelController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
             Route::get('/{id}/confirm', [AdminLevelController::class, 'deleteConfirm'])->name('confirm')->where('id', '[0-9]+');
             Route::post('/bulk-delete', [AdminLevelController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/{id}/toggle-permission', [AdminLevelController::class, 'togglePermission'])->name('toggle-permission')->where('id', '[0-9]+');
+            Route::post('/update-order', [AdminLevelController::class, 'updateOrder'])->name('update-order');
+            Route::get('/stats', [AdminLevelController::class, 'stats'])->name('stats');
+            Route::get('/user-statistics', [AdminLevelController::class, 'getUserStatistics'])->name('user-statistics');
         });
 
         // 관리자 세션 관리
-        Route::prefix('sessions')->name('sessions.')->group(function () {
+        Route::prefix('admin/sessions')->name('admin.sessions.')->group(function () {
             Route::get('/', [AdminSessionController::class, 'index'])->name('index');
+            Route::get('/create', [AdminSessionController::class, 'create'])->name('create');
+            Route::post('/', [AdminSessionController::class, 'store'])->name('store');
             Route::get('/{id}', [AdminSessionController::class, 'show'])->name('show')->where('id', '[0-9a-zA-Z]+');
+            Route::get('/{id}/edit', [AdminSessionController::class, 'edit'])->name('edit')->where('id', '[0-9a-zA-Z]+');
+            Route::put('/{id}', [AdminSessionController::class, 'update'])->name('update')->where('id', '[0-9a-zA-Z]+');
             Route::get('/{id}/confirm', [AdminSessionController::class, 'confirm'])->name('confirm')->where('id', '[0-9a-zA-Z]+');
             Route::delete('/{id}', [AdminSessionController::class, 'destroy'])->name('destroy')->where('id', '[0-9a-zA-Z]+');
-            Route::post('/{id}/refresh', [AdminSessionController::class, 'refresh'])->name('refresh')->where('id', '[0-9a-zA-Z]+');
+            Route::get('/{id}/refresh', [AdminSessionController::class, 'refresh'])->name('refresh')->where('id', '[0-9a-zA-Z]+');
             Route::post('/bulk-delete', [AdminSessionController::class, 'bulkDelete'])->name('bulk-delete');
         });
         

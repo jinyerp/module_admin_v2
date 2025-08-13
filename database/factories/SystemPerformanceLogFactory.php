@@ -4,334 +4,306 @@ namespace Jiny\Admin\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Jiny\Admin\App\Models\SystemPerformanceLog;
-use Carbon\Carbon;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\Jiny\Admin\App\Models\SystemPerformanceLog>
+ * SystemPerformanceLog 모델 팩토리
  */
 class SystemPerformanceLogFactory extends Factory
 {
     /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
+     * 모델 클래스명
+     */
+    protected $model = SystemPerformanceLog::class;
+
+    /**
+     * 기본 정의
      */
     public function definition(): array
     {
-        $metricTypes = SystemPerformanceLog::getMetricTypes();
-        $statuses = SystemPerformanceLog::getStatuses();
-        
-        $metricType = $this->faker->randomElement(array_keys($metricTypes));
-        $value = $this->generateValueByType($metricType);
-        $status = $this->determineStatus($metricType, $value);
-        
         return [
-            'metric_name' => $this->generateMetricName($metricType),
-            'metric_type' => $metricType,
-            'value' => $value,
-            'unit' => $this->generateUnit($metricType),
-            'threshold' => $this->generateThreshold($metricType),
-            'status' => $status,
-            'server_name' => $this->faker->randomElement([
-                'web-server-01', 'web-server-02', 'db-server-01', 
-                'app-server-01', 'cache-server-01', 'load-balancer-01'
+            'metric_type' => $this->faker->randomElement([
+                'cpu',
+                'memory',
+                'disk',
+                'network',
+                'database'
             ]),
-            'component' => $this->generateComponent($metricType),
-            'additional_data' => $this->generateAdditionalData($metricType, $value),
-            'measured_at' => $this->faker->dateTimeBetween('-24 hours', 'now'),
+            'metric_name' => $this->faker->randomElement([
+                'cpu_usage',
+                'memory_usage',
+                'disk_read',
+                'disk_write',
+                'network_in',
+                'network_out',
+                'db_connections',
+                'db_query_time'
+            ]),
+            'value' => $this->faker->randomFloat(2, 0, 100),
+            'unit' => $this->faker->randomElement(['%', 'MB', 'GB', 'KB/s', 'MB/s', 'ms']),
+            'threshold' => $this->faker->optional(0.7)->randomFloat(2, 50, 95),
+            'status' => $this->faker->randomElement(['normal', 'warning', 'critical']),
+            'measured_at' => $this->faker->dateTimeBetween('-30 days', 'now'),
+            'additional_data' => [
+                'hostname' => $this->faker->randomElement([
+                    'web-server-01',
+                    'db-server-01',
+                    'app-server-01',
+                    'cache-server-01'
+                ]),
+                'ip' => $this->faker->ipv4,
+                'environment' => $this->faker->randomElement(['production', 'staging', 'development']),
+                'region' => $this->faker->randomElement(['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1'])
+            ],
+            'additional_data' => $this->faker->optional(0.5)->randomElement([
+                null,
+                ['process_count' => $this->faker->numberBetween(10, 200)],
+                ['thread_count' => $this->faker->numberBetween(50, 500)],
+                ['cache_hit_rate' => $this->faker->randomFloat(2, 80, 99)],
+                ['error_count' => $this->faker->numberBetween(0, 10)]
+            ]),
         ];
     }
-    
+
     /**
-     * CPU 메트릭용 상태
+     * CPU 지표 상태
      */
     public function cpu(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'metric_name' => 'CPU 사용률',
-            'metric_type' => 'cpu',
-            'value' => $this->faker->numberBetween(5, 95),
-            'unit' => '%',
-            'threshold' => '80',
-            'component' => $this->faker->randomElement(['nginx', 'php-fpm', 'mysql', 'redis', 'apache']),
-            'additional_data' => [
-                'load_average' => [
-                    '1min' => $this->faker->randomFloat(2, 0.1, 5.0),
-                    '5min' => $this->faker->randomFloat(2, 0.1, 5.0),
-                    '15min' => $this->faker->randomFloat(2, 0.1, 5.0)
-                ],
-                'cpu_cores' => $this->faker->numberBetween(4, 16),
-                'temperature' => $this->faker->numberBetween(40, 80)
-            ]
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'metric_type' => 'cpu',
+                'metric_name' => $this->faker->randomElement([
+                    'cpu_usage',
+                    'cpu_load_1m',
+                    'cpu_load_5m',
+                    'cpu_load_15m',
+                    'cpu_idle',
+                    'cpu_user',
+                    'cpu_system'
+                ]),
+                'unit' => '%',
+                'value' => $this->faker->randomFloat(2, 0, 100),
+            ];
+        });
     }
-    
+
     /**
-     * 메모리 메트릭용 상태
+     * 메모리 지표 상태
      */
     public function memory(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'metric_name' => '메모리 사용률',
-            'metric_type' => 'memory',
-            'value' => $this->faker->numberBetween(20, 95),
-            'unit' => '%',
-            'threshold' => '85',
-            'component' => $this->faker->randomElement(['nginx', 'php-fpm', 'mysql', 'redis', 'apache']),
-            'additional_data' => [
-                'total_memory' => $this->faker->numberBetween(8, 64) * 1024 * 1024 * 1024,
-                'free_memory' => $this->faker->numberBetween(1, 16) * 1024 * 1024 * 1024,
-                'swap_usage' => $this->faker->numberBetween(0, 50)
-            ]
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'metric_type' => 'memory',
+                'metric_name' => $this->faker->randomElement([
+                    'memory_usage',
+                    'memory_available',
+                    'memory_used',
+                    'memory_free',
+                    'swap_usage',
+                    'swap_available'
+                ]),
+                'unit' => $this->faker->randomElement(['%', 'MB', 'GB']),
+                'value' => $this->faker->randomFloat(2, 0, 100),
+            ];
+        });
     }
-    
+
     /**
-     * 디스크 메트릭용 상태
+     * 디스크 지표 상태
      */
     public function disk(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'metric_name' => '디스크 사용률',
-            'metric_type' => 'disk',
-            'value' => $this->faker->numberBetween(30, 95),
-            'unit' => '%',
-            'threshold' => '90',
-            'component' => $this->faker->randomElement(['/var/www', '/var/log', '/tmp', '/home', '/usr']),
-            'additional_data' => [
-                'total_space' => $this->faker->numberBetween(100, 2000) * 1024 * 1024 * 1024,
-                'free_space' => $this->faker->numberBetween(10, 200) * 1024 * 1024 * 1024,
-                'inodes_usage' => $this->faker->numberBetween(10, 80),
-                'io_wait' => $this->faker->numberBetween(0, 50)
-            ]
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'metric_type' => 'disk',
+                'metric_name' => $this->faker->randomElement([
+                    'disk_usage',
+                    'disk_read',
+                    'disk_write',
+                    'disk_iops',
+                    'disk_latency',
+                    'disk_queue_length'
+                ]),
+                'unit' => $this->faker->randomElement(['%', 'MB/s', 'KB/s', 'ms']),
+                'value' => $this->faker->randomFloat(2, 0, 100),
+            ];
+        });
     }
-    
+
     /**
-     * 네트워크 메트릭용 상태
+     * 네트워크 지표 상태
      */
     public function network(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'metric_name' => '네트워크 대역폭',
-            'metric_type' => 'network',
-            'value' => $this->faker->numberBetween(10, 1000),
-            'unit' => 'Mbps',
-            'threshold' => '800',
-            'component' => $this->faker->randomElement(['eth0', 'eth1', 'lo', 'wlan0']),
-            'additional_data' => [
-                'packets_sent' => $this->faker->numberBetween(1000, 100000),
-                'packets_received' => $this->faker->numberBetween(1000, 100000),
-                'errors' => $this->faker->numberBetween(0, 100),
-                'dropped' => $this->faker->numberBetween(0, 50)
-            ]
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'metric_type' => 'network',
+                'metric_name' => $this->faker->randomElement([
+                    'network_in',
+                    'network_out',
+                    'network_packets_in',
+                    'network_packets_out',
+                    'network_errors',
+                    'network_dropped'
+                ]),
+                'unit' => $this->faker->randomElement(['MB/s', 'KB/s', 'packets/s']),
+                'value' => $this->faker->randomFloat(2, 0, 1000),
+            ];
+        });
     }
-    
+
     /**
-     * 데이터베이스 메트릭용 상태
+     * 데이터베이스 지표 상태
      */
     public function database(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'metric_name' => '데이터베이스 연결수',
-            'metric_type' => 'database',
-            'value' => $this->faker->numberBetween(50, 2000),
-            'unit' => 'connections',
-            'threshold' => '1500',
-            'component' => $this->faker->randomElement(['mysql', 'postgresql', 'redis', 'mongodb']),
-            'additional_data' => [
-                'active_connections' => $this->faker->numberBetween(10, 500),
-                'idle_connections' => $this->faker->numberBetween(5, 200),
-                'slow_queries' => $this->faker->numberBetween(0, 50),
-                'query_time_avg' => $this->faker->randomFloat(3, 0.01, 0.5)
-            ]
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'metric_type' => 'database',
+                'metric_name' => $this->faker->randomElement([
+                    'db_connections',
+                    'db_query_time',
+                    'db_queries_per_second',
+                    'db_slow_queries',
+                    'db_lock_time',
+                    'db_buffer_pool_hit_rate'
+                ]),
+                'unit' => $this->faker->randomElement(['connections', 'ms', 'queries/s', '%']),
+                'value' => $this->faker->randomFloat(2, 0, 1000),
+            ];
+        });
     }
-    
+
     /**
-     * 경고 상태용 상태
+     * 정상 상태
+     */
+    public function normal(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'status' => 'normal',
+                'value' => $this->faker->randomFloat(2, 0, 70),
+            ];
+        });
+    }
+
+    /**
+     * 경고 상태
      */
     public function warning(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'warning'
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'status' => 'warning',
+                'value' => $this->faker->randomFloat(2, 70, 90),
+            ];
+        });
     }
-    
+
     /**
-     * 치명적 상태용 상태
+     * 위험 상태
      */
     public function critical(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'critical'
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'status' => 'critical',
+                'value' => $this->faker->randomFloat(2, 90, 100),
+            ];
+        });
     }
-    
+
     /**
-     * 최근 데이터용 상태 (24시간 이내)
+     * 높은 값
+     */
+    public function high(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'value' => $this->faker->randomFloat(2, 80, 100),
+            ];
+        });
+    }
+
+    /**
+     * 낮은 값
+     */
+    public function low(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'value' => $this->faker->randomFloat(2, 0, 30),
+            ];
+        });
+    }
+
+    /**
+     * 최근 데이터
      */
     public function recent(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'measured_at' => $this->faker->dateTimeBetween('-24 hours', 'now')
-        ]);
+        return $this->state(function (array $attributes) {
+            return [
+                'measured_at' => $this->faker->dateTimeBetween('-1 hour', 'now'),
+            ];
+        });
     }
-    
+
     /**
-     * 메트릭 타입에 따른 값 생성
+     * 오래된 데이터
      */
-    private function generateValueByType(string $metricType): float
+    public function old(): static
     {
-        return match($metricType) {
-            'cpu' => $this->faker->numberBetween(5, 95),
-            'memory' => $this->faker->numberBetween(20, 95),
-            'disk' => $this->faker->numberBetween(30, 95),
-            'network' => $this->faker->numberBetween(10, 1000),
-            'database' => $this->faker->numberBetween(50, 2000),
-            default => $this->faker->numberBetween(0, 100)
-        };
+        return $this->state(function (array $attributes) {
+            return [
+                'measured_at' => $this->faker->dateTimeBetween('-30 days', '-7 days'),
+            ];
+        });
     }
-    
+
     /**
-     * 메트릭 타입에 따른 상태 결정
+     * 프로덕션 환경
      */
-    private function determineStatus(string $metricType, float $value): string
+    public function production(): static
     {
-        $thresholds = [
-            'cpu' => ['warning' => 60, 'critical' => 80],
-            'memory' => ['warning' => 70, 'critical' => 85],
-            'disk' => ['warning' => 80, 'critical' => 90],
-            'network' => ['warning' => 500, 'critical' => 800],
-            'database' => ['warning' => 1000, 'critical' => 1500]
-        ];
-        
-        if (!isset($thresholds[$metricType])) {
-            return $this->faker->randomElement(['normal', 'warning', 'critical']);
-        }
-        
-        $threshold = $thresholds[$metricType];
-        
-        if ($value >= $threshold['critical']) {
-            return 'critical';
-        } elseif ($value >= $threshold['warning']) {
-            return 'warning';
-        } else {
-            return 'normal';
-        }
+        return $this->state(function (array $attributes) {
+            return [
+                'server_info' => array_merge($attributes['server_info'] ?? [], [
+                    'environment' => 'production',
+                    'region' => $this->faker->randomElement(['us-east-1', 'us-west-2'])
+                ]),
+            ];
+        });
     }
-    
+
     /**
-     * 메트릭 타입에 따른 이름 생성
+     * 스테이징 환경
      */
-    private function generateMetricName(string $metricType): string
+    public function staging(): static
     {
-        return match($metricType) {
-            'cpu' => 'CPU 사용률',
-            'memory' => '메모리 사용률',
-            'disk' => '디스크 사용률',
-            'network' => '네트워크 대역폭',
-            'database' => '데이터베이스 연결수',
-            'application' => '애플리케이션 응답시간',
-            'service' => '서비스 가용성',
-            default => '시스템 메트릭'
-        };
+        return $this->state(function (array $attributes) {
+            return [
+                'server_info' => array_merge($attributes['server_info'] ?? [], [
+                    'environment' => 'staging',
+                    'region' => $this->faker->randomElement(['us-east-1', 'us-west-2'])
+                ]),
+            ];
+        });
     }
-    
+
     /**
-     * 메트릭 타입에 따른 단위 생성
+     * 개발 환경
      */
-    private function generateUnit(string $metricType): string
+    public function development(): static
     {
-        return match($metricType) {
-            'cpu' => '%',
-            'memory' => '%',
-            'disk' => '%',
-            'network' => 'Mbps',
-            'database' => 'connections',
-            'application' => 'ms',
-            'service' => '%',
-            default => 'unit'
-        };
-    }
-    
-    /**
-     * 메트릭 타입에 따른 임계값 생성
-     */
-    private function generateThreshold(string $metricType): string
-    {
-        return match($metricType) {
-            'cpu' => '80',
-            'memory' => '85',
-            'disk' => '90',
-            'network' => '800',
-            'database' => '1500',
-            'application' => '1000',
-            'service' => '95',
-            default => '100'
-        };
-    }
-    
-    /**
-     * 메트릭 타입에 따른 컴포넌트 생성
-     */
-    private function generateComponent(string $metricType): string
-    {
-        return match($metricType) {
-            'cpu' => $this->faker->randomElement(['nginx', 'php-fpm', 'mysql', 'redis', 'apache']),
-            'memory' => $this->faker->randomElement(['nginx', 'php-fpm', 'mysql', 'redis', 'apache']),
-            'disk' => $this->faker->randomElement(['/var/www', '/var/log', '/tmp', '/home', '/usr']),
-            'network' => $this->faker->randomElement(['eth0', 'eth1', 'lo', 'wlan0']),
-            'database' => $this->faker->randomElement(['mysql', 'postgresql', 'redis', 'mongodb']),
-            'application' => $this->faker->randomElement(['web-app', 'api-service', 'auth-service']),
-            'service' => $this->faker->randomElement(['web-server', 'db-server', 'cache-server']),
-            default => 'system'
-        };
-    }
-    
-    /**
-     * 메트릭 타입에 따른 추가 데이터 생성
-     */
-    private function generateAdditionalData(string $metricType, float $value): array
-    {
-        return match($metricType) {
-            'cpu' => [
-                'load_average' => [
-                    '1min' => $this->faker->randomFloat(2, 0.1, 5.0),
-                    '5min' => $this->faker->randomFloat(2, 0.1, 5.0),
-                    '15min' => $this->faker->randomFloat(2, 0.1, 5.0)
-                ],
-                'cpu_cores' => $this->faker->numberBetween(4, 16),
-                'temperature' => $this->faker->numberBetween(40, 80)
-            ],
-            'memory' => [
-                'total_memory' => $this->faker->numberBetween(8, 64) * 1024 * 1024 * 1024,
-                'free_memory' => $this->faker->numberBetween(1, 16) * 1024 * 1024 * 1024,
-                'swap_usage' => $this->faker->numberBetween(0, 50)
-            ],
-            'disk' => [
-                'total_space' => $this->faker->numberBetween(100, 2000) * 1024 * 1024 * 1024,
-                'free_space' => $this->faker->numberBetween(10, 200) * 1024 * 1024 * 1024,
-                'inodes_usage' => $this->faker->numberBetween(10, 80),
-                'io_wait' => $this->faker->numberBetween(0, 50)
-            ],
-            'network' => [
-                'packets_sent' => $this->faker->numberBetween(1000, 100000),
-                'packets_received' => $this->faker->numberBetween(1000, 100000),
-                'errors' => $this->faker->numberBetween(0, 100),
-                'dropped' => $this->faker->numberBetween(0, 50)
-            ],
-            'database' => [
-                'active_connections' => $this->faker->numberBetween(10, 500),
-                'idle_connections' => $this->faker->numberBetween(5, 200),
-                'slow_queries' => $this->faker->numberBetween(0, 50),
-                'query_time_avg' => $this->faker->randomFloat(3, 0.01, 0.5)
-            ],
-            default => [
-                'timestamp' => now()->toISOString(),
-                'version' => '1.0.0'
-            ]
-        };
+        return $this->state(function (array $attributes) {
+            return [
+                'server_info' => array_merge($attributes['server_info'] ?? [], [
+                    'environment' => 'development',
+                    'region' => 'local'
+                ]),
+            ];
+        });
     }
 } 

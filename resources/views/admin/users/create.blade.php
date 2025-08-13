@@ -4,25 +4,29 @@
 @section('description', '새로운 관리자 회원 정보를 입력하고 등록하세요.')
 
 {{-- 리소스 create 페이지 --}}
+@section('heading')
+<div class="w-full">
+    <div class="sm:flex sm:items-end justify-between">
+        <div class="sm:flex-auto">
+            <h1 class="text-2xl font-semibold text-gray-900">관리자 회원 관리</h1>
+            <p class="mt-2 text-base text-gray-700">시스템에서 지원하는 관리자 회원 목록을 관리합니다. 관리자 회원명, 이메일, 타입, 상태 등을 관리할 수 있습니다.</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <x-ui::button-light href="{{ route($route.'index') }}">
+                <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                회원 목록
+            </x-ui::button-light>
+        </div>
+    </div>
+</div>
+@endsection
+
 @section('content')
     <div class="pt-2 pb-4">
 
-        <div class="w-full">
-            <div class="sm:flex sm:items-end justify-between">
-                <div class="sm:flex-auto">
-                    <h1 class="text-2xl font-semibold text-gray-900">관리자 회원 관리</h1>
-                    <p class="mt-2 text-base text-gray-700">시스템에서 지원하는 관리자 회원 목록을 관리합니다. 관리자 회원명, 이메일, 타입, 상태 등을 관리할 수 있습니다.</p>
-                </div>
-                <div class="mt-4 sm:mt-0">
-                    <x-ui::button-light href="{{ route($route.'index') }}">
-                        <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        회원 목록
-                    </x-ui::button-light>
-                </div>
-            </div>
-        </div>
+        
         
 
         {{-- 통합된 알림 메시지 --}}

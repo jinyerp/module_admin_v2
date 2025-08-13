@@ -2,20 +2,32 @@
 
 namespace Jiny\Admin\App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Carbon\Carbon;
 
 /**
- * 시스템 운영 로그 모델
- *
- * 시스템의 모든 운영 활동을 상세히 기록합니다.
- * - 사용자 및 관리자의 모든 시스템 활동 추적
- * - 운영 타입별 분류 및 성능 모니터링
- * - 보안 관련 정보 수집
- * - 에러 및 예외 상황 기록
- * - 실행 시간 측정으로 성능 분석
+ * SystemOperationLog 모델
+ * 
+ * 시스템의 모든 운영 활동을 추적하고 기록하는 모델입니다.
+ * 
+ * @property int $id
+ * @property string $operation_type 운영 타입
+ * @property string $operation_name 운영명
+ * @property string $performed_by_type 수행자 타입
+ * @property int $performed_by_id 수행자 ID
+ * @property string|null $target_type 대상 타입
+ * @property int|null $target_id 대상 ID
+ * @property string $status 상태 (success, failed, partial)
+ * @property int|null $execution_time 실행 시간 (밀리초)
+ * @property string $severity 중요도 (low, medium, high, critical)
+ * @property string|null $ip_address IP 주소
+ * @property string|null $session_id 세션 ID
+ * @property string|null $error_message 에러 메시지
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class SystemOperationLog extends Model
 {
@@ -27,7 +39,7 @@ class SystemOperationLog extends Model
     protected $table = 'system_operation_logs';
 
     /**
-     * 대량 할당 가능한 속성들
+     * 대량 할당 가능한 속성
      */
     protected $fillable = [
         'operation_type',
@@ -36,58 +48,40 @@ class SystemOperationLog extends Model
         'performed_by_id',
         'target_type',
         'target_id',
-        'ip_address',
-        'user_agent',
-        'session_id',
-        'request_data',
-        'response_data',
         'status',
-        'error_message',
         'execution_time',
         'severity',
+        'ip_address',
+        'session_id',
+        'error_message',
     ];
 
     /**
-     * 캐스팅할 속성들
+     * 타입 캐스팅
      */
     protected $casts = [
-        'request_data' => 'array',
-        'response_data' => 'array',
         'execution_time' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     /**
-     * 상태 상수
+     * 숨겨진 속성
      */
-    const STATUS_SUCCESS = 'success';
-    const STATUS_FAILED = 'failed';
-    const STATUS_PARTIAL = 'partial';
+    protected $hidden = [
+    ];
 
     /**
-     * 중요도 상수
+     * 추가된 속성
      */
-    const SEVERITY_INFO = 'info';
-    const SEVERITY_WARNING = 'warning';
-    const SEVERITY_ERROR = 'error';
-    const SEVERITY_CRITICAL = 'critical';
+    protected $appends = [
+        'duration_formatted',
+        'status_label',
+        'severity_label',
+    ];
 
     /**
-     * 운영 타입 상수
-     */
-    const OPERATION_TYPE_LOGIN = 'login';
-    const OPERATION_TYPE_LOGOUT = 'logout';
-    const OPERATION_TYPE_CREATE = 'create';
-    const OPERATION_TYPE_UPDATE = 'update';
-    const OPERATION_TYPE_DELETE = 'delete';
-    const OPERATION_TYPE_READ = 'read';
-    const OPERATION_TYPE_SEARCH = 'search';
-    const OPERATION_TYPE_EXPORT = 'export';
-    const OPERATION_TYPE_IMPORT = 'import';
-
-    /**
-     * 수행자와의 다형성 관계
+     * 수행자 관계 (MorphTo)
      */
     public function performedBy(): MorphTo
     {
@@ -95,7 +89,7 @@ class SystemOperationLog extends Model
     }
 
     /**
-     * 대상과의 다형성 관계
+     * 대상 관계 (MorphTo)
      */
     public function target(): MorphTo
     {
@@ -103,260 +97,139 @@ class SystemOperationLog extends Model
     }
 
     /**
-     * 성공 로그 생성 (정적 메서드)
+     * 관리자 사용자 관계
      */
-    public static function logSuccess(
-        string $operationType,
-        string $operationName,
-        string $performedByType,
-        int $performedById,
-        ?string $targetType = null,
-        ?int $targetId = null,
-        ?int $executionTime = null,
-        ?array $requestData = null,
-        ?array $responseData = null
-    ): self {
-        return self::create([
-            'operation_type' => $operationType,
-            'operation_name' => $operationName,
-            'performed_by_type' => $performedByType,
-            'performed_by_id' => $performedById,
-            'target_type' => $targetType,
-            'target_id' => $targetId,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'session_id' => request()->session()->getId(),
-            'request_data' => $requestData,
-            'response_data' => $responseData,
-            'status' => self::STATUS_SUCCESS,
-            'execution_time' => $executionTime,
-            'severity' => self::SEVERITY_INFO,
-        ]);
-    }
-
-    /**
-     * 실패 로그 생성 (정적 메서드)
-     */
-    public static function logFailed(
-        string $operationType,
-        string $operationName,
-        string $performedByType,
-        int $performedById,
-        string $errorMessage,
-        ?string $targetType = null,
-        ?int $targetId = null,
-        ?int $executionTime = null,
-        ?array $requestData = null,
-        string $severity = self::SEVERITY_ERROR
-    ): self {
-        return self::create([
-            'operation_type' => $operationType,
-            'operation_name' => $operationName,
-            'performed_by_type' => $performedByType,
-            'performed_by_id' => $performedById,
-            'target_type' => $targetType,
-            'target_id' => $targetId,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'session_id' => request()->session()->getId(),
-            'request_data' => $requestData,
-            'status' => self::STATUS_FAILED,
-            'error_message' => $errorMessage,
-            'execution_time' => $executionTime,
-            'severity' => $severity,
-        ]);
-    }
-
-    /**
-     * 부분 성공 로그 생성 (정적 메서드)
-     */
-    public static function logPartial(
-        string $operationType,
-        string $operationName,
-        string $performedByType,
-        int $performedById,
-        string $errorMessage,
-        ?string $targetType = null,
-        ?int $targetId = null,
-        ?int $executionTime = null,
-        ?array $requestData = null,
-        ?array $responseData = null
-    ): self {
-        return self::create([
-            'operation_type' => $operationType,
-            'operation_name' => $operationName,
-            'performed_by_type' => $performedByType,
-            'performed_by_id' => $performedById,
-            'target_type' => $targetType,
-            'target_id' => $targetId,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'session_id' => request()->session()->getId(),
-            'request_data' => $requestData,
-            'response_data' => $responseData,
-            'status' => self::STATUS_PARTIAL,
-            'error_message' => $errorMessage,
-            'execution_time' => $executionTime,
-            'severity' => self::SEVERITY_WARNING,
-        ]);
-    }
-
-    /**
-     * 성공한 운영만 조회하는 스코프
-     */
-    public function scopeSuccessful($query)
+    public function adminUser(): BelongsTo
     {
-        return $query->where('status', self::STATUS_SUCCESS);
+        return $this->belongsTo(AdminUser::class, 'performed_by_id')
+            ->where('performed_by_type', AdminUser::class);
     }
 
     /**
-     * 실패한 운영만 조회하는 스코프
+     * 성공한 운영 로그만 조회하는 스코프
+     */
+    public function scopeSuccess($query)
+    {
+        return $query->where('status', 'success');
+    }
+
+    /**
+     * 실패한 운영 로그만 조회하는 스코프
      */
     public function scopeFailed($query)
     {
-        return $query->where('status', self::STATUS_FAILED);
+        return $query->where('status', 'failed');
     }
 
     /**
-     * 부분 성공한 운영만 조회하는 스코프
+     * 부분 성공한 운영 로그만 조회하는 스코프
      */
     public function scopePartial($query)
     {
-        return $query->where('status', self::STATUS_PARTIAL);
+        return $query->where('status', 'partial');
     }
 
     /**
-     * 특정 운영 타입만 조회하는 스코프
+     * 특정 운영 타입의 로그만 조회하는 스코프
      */
-    public function scopeByOperationType($query, string $operationType)
+    public function scopeByOperationType($query, string $type)
     {
-        return $query->where('operation_type', $operationType);
+        return $query->where('operation_type', $type);
     }
 
     /**
-     * 특정 수행자만 조회하는 스코프
+     * 특정 수행자의 로그만 조회하는 스코프
      */
-    public function scopeByPerformer($query, string $performedByType, int $performedById)
+    public function scopeByPerformer($query, string $type, int $id)
     {
-        return $query->where('performed_by_type', $performedByType)
-                    ->where('performed_by_id', $performedById);
+        return $query->where('performed_by_type', $type)
+                    ->where('performed_by_id', $id);
     }
 
     /**
-     * 특정 대상만 조회하는 스코프
+     * 특정 IP 주소의 로그만 조회하는 스코프
      */
-    public function scopeByTarget($query, string $targetType, ?int $targetId = null)
+    public function scopeByIpAddress($query, string $ip)
     {
-        $query = $query->where('target_type', $targetType);
-        
-        if ($targetId !== null) {
-            $query->where('target_id', $targetId);
-        }
-        
-        return $query;
+        return $query->where('ip_address', $ip);
     }
 
     /**
-     * 특정 중요도만 조회하는 스코프
+     * 특정 세션의 로그만 조회하는 스코프
+     */
+    public function scopeBySession($query, string $sessionId)
+    {
+        return $query->where('session_id', $sessionId);
+    }
+
+    /**
+     * 느린 운영 로그만 조회하는 스코프 (기본값: 1000ms 이상)
+     */
+    public function scopeSlow($query, int $threshold = 1000)
+    {
+        return $query->where('execution_time', '>', $threshold);
+    }
+
+    /**
+     * 특정 중요도 이상의 로그만 조회하는 스코프
      */
     public function scopeBySeverity($query, string $severity)
     {
-        return $query->where('severity', $severity);
+        $severityLevels = ['low' => 1, 'medium' => 2, 'high' => 3, 'critical' => 4];
+        $level = $severityLevels[$severity] ?? 1;
+        
+        return $query->whereIn('severity', array_keys(array_filter($severityLevels, function($value) use ($level) {
+            return $value >= $level;
+        })));
     }
 
     /**
-     * 최근 운영만 조회하는 스코프
+     * 최근 로그만 조회하는 스코프
      */
-    public function scopeRecent($query, int $days = 30)
+    public function scopeRecent($query, int $days = 7)
     {
         return $query->where('created_at', '>=', now()->subDays($days));
     }
 
     /**
-     * 느린 운영만 조회하는 스코프
+     * 특정 날짜 범위의 로그만 조회하는 스코프
      */
-    public function scopeSlow($query, int $thresholdMs = 1000)
+    public function scopeDateRange($query, $startDate, $endDate)
     {
-        return $query->where('execution_time', '>', $thresholdMs);
+        return $query->whereBetween('created_at', [$startDate, $endDate]);
     }
 
     /**
-     * 성공 여부 확인
+     * 성공률 계산
      */
-    public function isSuccessful(): bool
+    public static function getSuccessRate($days = 30): float
     {
-        return $this->status === self::STATUS_SUCCESS;
+        $startDate = now()->subDays($days);
+        
+        $total = static::where('created_at', '>=', $startDate)->count();
+        $success = static::where('created_at', '>=', $startDate)
+                       ->where('status', 'success')
+                       ->count();
+        
+        return $total > 0 ? round(($success / $total) * 100, 2) : 0;
     }
 
     /**
-     * 실패 여부 확인
+     * 평균 실행 시간 계산
      */
-    public function isFailed(): bool
+    public static function getAverageExecutionTime($days = 30): float
     {
-        return $this->status === self::STATUS_FAILED;
-    }
-
-    /**
-     * 부분 성공 여부 확인
-     */
-    public function isPartial(): bool
-    {
-        return $this->status === self::STATUS_PARTIAL;
-    }
-
-    /**
-     * 높은 중요도 여부 확인
-     */
-    public function isHighSeverity(): bool
-    {
-        return in_array($this->severity, [self::SEVERITY_ERROR, self::SEVERITY_CRITICAL]);
-    }
-
-    /**
-     * 느린 운영 여부 확인
-     */
-    public function isSlow(int $thresholdMs = 1000): bool
-    {
-        return $this->execution_time > $thresholdMs;
-    }
-
-    /**
-     * 수행자 정보 조회
-     */
-    public function getPerformerInfo(): ?array
-    {
-        if (!$this->performedBy) {
-            return null;
-        }
-
-        return [
-            'id' => $this->performed_by_id,
-            'type' => $this->performed_by_type,
-            'name' => $this->performedBy->name ?? 'Unknown',
-            'email' => $this->performedBy->email ?? null,
-        ];
-    }
-
-    /**
-     * 대상 정보 조회
-     */
-    public function getTargetInfo(): ?array
-    {
-        if (!$this->target) {
-            return null;
-        }
-
-        return [
-            'id' => $this->target_id,
-            'type' => $this->target_type,
-            'name' => $this->target->name ?? 'Unknown',
-        ];
+        $startDate = now()->subDays($days);
+        
+        return static::where('created_at', '>=', $startDate)
+                    ->whereNotNull('execution_time')
+                    ->avg('execution_time') ?? 0;
     }
 
     /**
      * 포맷된 실행 시간 반환
      */
-    public function getFormattedExecutionTime(): string
+    public function getDurationFormattedAttribute(): string
     {
         if (!$this->execution_time) {
             return 'N/A';
@@ -370,157 +243,61 @@ class SystemOperationLog extends Model
     }
 
     /**
-     * 운영 상태에 따른 CSS 클래스 반환
+     * 상태 라벨 반환
      */
-    public function getStatusClass(): string
+    public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
-            self::STATUS_SUCCESS => 'success',
-            self::STATUS_FAILED => 'danger',
-            self::STATUS_PARTIAL => 'warning',
-            default => 'info',
-        };
+        $labels = [
+            'success' => '성공',
+            'failed' => '실패',
+            'partial' => '부분 성공'
+        ];
+
+        return $labels[$this->status] ?? $this->status;
     }
 
     /**
-     * 중요도에 따른 CSS 클래스 반환
+     * 중요도 라벨 반환
      */
-    public function getSeverityClass(): string
+    public function getSeverityLabelAttribute(): string
     {
-        return match($this->severity) {
-            self::SEVERITY_CRITICAL => 'danger',
-            self::SEVERITY_ERROR => 'danger',
-            self::SEVERITY_WARNING => 'warning',
-            default => 'info',
-        };
+        $labels = [
+            'low' => '낮음',
+            'medium' => '보통',
+            'high' => '높음',
+            'critical' => '치명적'
+        ];
+
+        return $labels[$this->severity] ?? $this->severity;
     }
 
     /**
-     * 운영 타입에 따른 아이콘 반환
+     * 안전한 배열 변환
      */
-    public function getOperationTypeIcon(): string
+    public function toSafeArray(): array
     {
-        return match($this->operation_type) {
-            self::OPERATION_TYPE_LOGIN => 'sign-in-alt',
-            self::OPERATION_TYPE_LOGOUT => 'sign-out-alt',
-            self::OPERATION_TYPE_CREATE => 'plus',
-            self::OPERATION_TYPE_UPDATE => 'edit',
-            self::OPERATION_TYPE_DELETE => 'trash',
-            self::OPERATION_TYPE_READ => 'eye',
-            self::OPERATION_TYPE_SEARCH => 'search',
-            self::OPERATION_TYPE_EXPORT => 'download',
-            self::OPERATION_TYPE_IMPORT => 'upload',
-            default => 'cog',
-        };
-    }
-
-    /**
-     * 운영 성공률 계산 (정적 메서드)
-     */
-    public static function getSuccessRate(): float
-    {
-        $total = self::count();
-        if ($total === 0) {
-            return 0;
-        }
-
-        $successful = self::where('status', self::STATUS_SUCCESS)->count();
-        return round(($successful / $total) * 100, 2);
-    }
-
-    /**
-     * 평균 실행 시간 계산 (정적 메서드)
-     */
-    public static function getAverageExecutionTime(): float
-    {
-        $avg = self::whereNotNull('execution_time')->avg('execution_time');
-        return $avg ? round($avg, 2) : 0;
-    }
-
-    /**
-     * 최근 운영 통계 조회 (정적 메서드)
-     */
-    public static function getRecentStats(int $days = 30): array
-    {
-        $startDate = now()->subDays($days);
-
         return [
-            'total' => self::where('created_at', '>=', $startDate)->count(),
-            'successful' => self::where('status', self::STATUS_SUCCESS)
-                ->where('created_at', '>=', $startDate)->count(),
-            'failed' => self::where('status', self::STATUS_FAILED)
-                ->where('created_at', '>=', $startDate)->count(),
-            'partial' => self::where('status', self::STATUS_PARTIAL)
-                ->where('created_at', '>=', $startDate)->count(),
-            'avg_execution_time' => self::where('created_at', '>=', $startDate)
-                ->whereNotNull('execution_time')->avg('execution_time'),
+            'id' => $this->id,
+            'operation_type' => $this->operation_type,
+            'operation_name' => $this->operation_name,
+            'status' => $this->status,
+            'status_label' => $this->status_label,
+            'execution_time' => $this->execution_time,
+            'duration_formatted' => $this->duration_formatted,
+            'severity' => $this->severity,
+            'severity_label' => $this->severity_label,
+            'ip_address' => $this->ip_address,
+            'session_id' => $this->session_id,
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'created_at_human' => $this->created_at?->diffForHumans(),
         ];
     }
 
     /**
-     * 운영 타입별 통계 조회 (정적 메서드)
+     * 팩토리 클래스 반환
      */
-    public static function getStatsByType(): array
+    protected static function newFactory()
     {
-        return self::selectRaw('operation_type, COUNT(*) as count, AVG(execution_time) as avg_execution_time')
-            ->groupBy('operation_type')
-            ->get()
-            ->keyBy('operation_type')
-            ->toArray();
-    }
-
-    /**
-     * 중요도별 통계 조회 (정적 메서드)
-     */
-    public static function getStatsBySeverity(): array
-    {
-        return self::selectRaw('severity, COUNT(*) as count')
-            ->groupBy('severity')
-            ->get()
-            ->keyBy('severity')
-            ->toArray();
-    }
-
-    /**
-     * 성능 분석 (정적 메서드)
-     */
-    public static function getPerformanceAnalysis(): array
-    {
-        $logs = self::whereNotNull('execution_time')->get();
-
-        return [
-            'total_operations' => $logs->count(),
-            'avg_execution_time' => $logs->avg('execution_time'),
-            'min_execution_time' => $logs->min('execution_time'),
-            'max_execution_time' => $logs->max('execution_time'),
-            'slow_operations' => $logs->where('execution_time', '>', 1000)->count(),
-            'fast_operations' => $logs->where('execution_time', '<', 100)->count(),
-        ];
-    }
-
-    /**
-     * 에러 분석 (정적 메서드)
-     */
-    public static function getErrorAnalysis(): array
-    {
-        $failed = self::whereIn('status', [self::STATUS_FAILED, self::STATUS_PARTIAL])
-            ->whereNotNull('error_message')
-            ->get();
-
-        $errorPatterns = [];
-        foreach ($failed as $log) {
-            $error = strtolower($log->error_message);
-            if (str_contains($error, 'database')) {
-                $errorPatterns['database'] = ($errorPatterns['database'] ?? 0) + 1;
-            } elseif (str_contains($error, 'permission')) {
-                $errorPatterns['permission'] = ($errorPatterns['permission'] ?? 0) + 1;
-            } elseif (str_contains($error, 'validation')) {
-                $errorPatterns['validation'] = ($errorPatterns['validation'] ?? 0) + 1;
-            } else {
-                $errorPatterns['other'] = ($errorPatterns['other'] ?? 0) + 1;
-            }
-        }
-
-        return $errorPatterns;
+        return \Jiny\Admin\Database\Factories\SystemOperationLogFactory::new();
     }
 }
